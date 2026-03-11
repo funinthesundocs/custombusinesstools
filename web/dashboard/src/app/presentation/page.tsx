@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Monitor, Tablet, Smartphone } from 'lucide-react'
+import config from '@/lib/siteConfig'
 
 export default function PresentationPage() {
   const [viewport, setViewport] = useState<'desktop' | 'tablet' | 'phone'>('desktop')
@@ -34,7 +35,7 @@ export default function PresentationPage() {
           <span className="h-2.5 w-2.5 rounded-full bg-red-500/50" />
           <span className="h-2.5 w-2.5 rounded-full bg-amber-500/50" />
           <span className="h-2.5 w-2.5 rounded-full bg-emerald-500/50" />
-          <span className="ml-4 text-xs text-zinc-500 font-mono">topqualityminerals.com</span>
+          <span className="ml-4 text-xs text-zinc-500 font-mono">{config.company.domain}</span>
         </div>
         <div className="h-[500px] flex items-center justify-center">
           <div className="text-center">

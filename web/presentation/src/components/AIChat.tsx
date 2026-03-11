@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { Send, User, Mic, Volume2, MessageCircle, WifiOff, X } from 'lucide-react'
 import { NuggetStatus, type NuggetState } from './NuggetStatus'
 import { supabase } from '@/lib/supabase'
+import config from '@/lib/siteConfig'
 
 interface DbMessage {
   id: string
@@ -23,11 +24,11 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
-  'What minerals have been confirmed at the GMC concession?',
-  'How large is the concession and where is it located?',
-  'What laboratories have validated the deposit?',
+  `What does ${config.company.short_name} do?`,
+  'Tell me about the team',
+  'What services do you offer?',
   'What is the partnership opportunity?',
-  'Tell me about the copper and gold grades',
+  'How can I get in touch?',
 ]
 
 function formatMarkdown(text: string): string {
@@ -207,10 +208,10 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
   const isAutoFollowUp = useRef(false)
   const [deviceId] = useState(() => {
     if (typeof window === 'undefined') return ''
-    let id = localStorage.getItem('gmc_device_id')
+    let id = localStorage.getItem('rag_device_id')
     if (!id) {
       id = crypto.randomUUID()
-      localStorage.setItem('gmc_device_id', id)
+      localStorage.setItem('rag_device_id', id)
     }
     return id
   })
@@ -222,13 +223,13 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
   const audioQueueRef = useRef<AudioQueue | null>(null)
   const messageIdsRef = useRef<Set<string>>(new Set())
 
-  // Preload all nugget images on mount
+  // Preload agent images on mount
   useEffect(() => {
     const preload = [
-      '/images/nugget/nugget-greeting.png',
-      '/images/nugget/nugget-hero-light.png',
-      '/images/nugget/nugget-hero-dark.png',
-      '/images/nugget/nugget-thinking.png',
+      `${config.agent.avatar_path}greeting.png`,
+      `${config.agent.avatar_path}hero-light.png`,
+      `${config.agent.avatar_path}hero-dark.png`,
+      `${config.agent.avatar_path}thinking.png`,
     ]
     preload.forEach(src => {
       const img = new window.Image()
@@ -504,7 +505,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
                               const updatedMsg: Message = {
                                 role: 'assistant',
                                 content: followUpContent,
-                                sender_name: 'Nugget (Updated)',
+                                sender_name: `${config.agent.name} (Updated)`,
                                 created_at: new Date().toISOString()
                               };
                               setMessages(prev => [...prev, updatedMsg]);
@@ -528,10 +529,10 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
                                       'Prefer': 'return=minimal'
                                     },
                                     body: JSON.stringify({
-                                      deal_id: '57eb32a1-8550-45d1-8906-64652642c465',
+                                      deal_id: config.supabase.deal_id,
                                       role: 'assistant',
                                       content: followUpContent,
-                                      sender_name: 'Nugget (Updated)'
+                                      sender_name: `${config.agent.name} (Updated)`
                                     })
                                   });
                                 }
@@ -700,11 +701,11 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
       {/* Header */}
       <div className={`flex items-center gap-4 px-4 py-6 border-b ${fullPage ? 'border-border' : 'border-gray-100'}`}>
         <div className="flex-shrink-0 w-[134px] h-[134px] rounded-full overflow-hidden shadow-lg flex items-center justify-center">
-          <Image src="/images/nugget/nugget-hero-light.png" alt="Nugget" width={112} height={112} className="w-[112px] h-[112px] object-cover flex-shrink-0" />
+          <Image src={`${config.agent.avatar_path}hero-light.png`} alt={config.agent.name} width={112} height={112} className="w-[112px] h-[112px] object-cover flex-shrink-0" />
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">
-          <h2 className="text-base font-bold text-text-primary tracking-wide whitespace-nowrap">ASK NUGGET</h2>
-          <p className="text-[11px] text-text-muted whitespace-nowrap">GMC AI Mining Intelligence</p>
+          <h2 className="text-base font-bold text-text-primary tracking-wide whitespace-nowrap">ASK {config.agent.name.toUpperCase()}</h2>
+          <p className="text-[11px] text-text-muted whitespace-nowrap">{config.company.short_name} AI Advisor</p>
         </div>
         <div className="flex items-center gap-1.5 ml-auto">
           <Volume2 size={13} className={`flex-shrink-0 ${isSpeaking ? 'text-brand-gold animate-pulse' : voiceEnabled ? 'text-brand-navy' : 'text-text-muted'}`} />
@@ -743,8 +744,8 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
           <div className="flex flex-col items-center justify-center h-full gap-5 px-2">
             <NuggetStatus state={nuggetState} size={80} />
             <div className="text-center">
-              <p className="text-text-primary text-base font-medium">ASK NUGGET</p>
-              <p className="text-text-muted text-xs mt-1">GMC AI Supercomputer</p>
+              <p className="text-text-primary text-base font-medium">ASK {config.agent.name.toUpperCase()}</p>
+              <p className="text-text-muted text-xs mt-1">{config.company.short_name} AI Advisor</p>
             </div>
             <div className="flex flex-wrap justify-center gap-1.5">
               {SUGGESTED_QUESTIONS.map((q) => (
@@ -770,8 +771,8 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
               {msg.role === 'assistant' && (
                 <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden mt-0.5 ${isThinkingMsg ? 'nugget-thinking' : ''}`}>
                   <Image
-                    src={isThinkingMsg ? '/images/nugget/nugget-thinking.png' : '/images/nugget/nugget-hero-light.png'}
-                    alt="Nugget"
+                    src={isThinkingMsg ? `${config.agent.avatar_path}thinking.png` : `${config.agent.avatar_path}hero-light.png`}
+                    alt={config.agent.name}
                     width={36}
                     height={36}
                     className="w-full h-full object-cover"
@@ -855,7 +856,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={isListening ? 'Listening...' : 'Ask Nugget...'}
+          placeholder={isListening ? 'Listening...' : `Ask ${config.agent.name}...`}
           disabled={isStreaming || isListening}
           className="flex-1 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-[16px] sm:text-sm text-text-primary placeholder-text-muted outline-none focus:border-brand-navy focus:ring-1 focus:ring-brand-navy/20 transition-colors disabled:opacity-50"
           autoFocus={fullPage}

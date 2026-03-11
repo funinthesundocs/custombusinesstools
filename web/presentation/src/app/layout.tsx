@@ -6,6 +6,7 @@ import { Footer } from '@/components/Footer'
 import { AOSInit } from '@/components/AOSInit'
 import { AIAssistantProvider } from '@/contexts/AIAssistantContext'
 import { AIAssistantModal } from '@/components/AIAssistantModal'
+import config from '@/lib/siteConfig'
 
 const playfair = Playfair_Display({ subsets: ['latin'], weight: ['700'], variable: '--font-playfair' })
 const dmSans = DM_Sans({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-dm-sans' })
@@ -18,8 +19,8 @@ export const viewport: Viewport = {
 }
 
 export const metadata: Metadata = {
-  title: 'Genluiching Mining Corporation',
-  description: 'A polymetallic deposit validated by nine independent laboratories across five countries. MPSA 251(A)-2007-XI, Davao Oriental, Philippines.',
+  title: config.company.name,
+  description: config.company.description,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

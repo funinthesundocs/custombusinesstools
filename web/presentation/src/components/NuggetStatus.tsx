@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import Image from 'next/image'
+import config from '@/lib/siteConfig'
 
 export type NuggetState = 'idle' | 'listening' | 'thinking' | 'talking'
 
@@ -10,11 +11,13 @@ interface NuggetStatusProps {
   size?: number
 }
 
+const agentPath = config.agent.avatar_path
+
 const IMAGE_MAP: Record<NuggetState, string> = {
-  idle: '/images/nugget/nugget-greeting.png',
-  listening: '/images/nugget/nugget-hero-light.png',
-  thinking: '/images/nugget/nugget-thinking.png',
-  talking: '/images/nugget/nugget-hero-light.png',
+  idle: `${agentPath}greeting.png`,
+  listening: `${agentPath}hero-light.png`,
+  thinking: `${agentPath}thinking.png`,
+  talking: `${agentPath}hero-light.png`,
 }
 
 const LABEL_MAP: Record<NuggetState, string> = {
@@ -34,13 +37,7 @@ const ANIMATION_MAP: Record<NuggetState, string> = {
 export function NuggetStatus({ state, size = 80 }: NuggetStatusProps) {
   // Preload all images on mount
   useEffect(() => {
-    const preload = [
-      '/images/nugget/nugget-greeting.png',
-      '/images/nugget/nugget-hero-light.png',
-      '/images/nugget/nugget-hero-dark.png',
-      '/images/nugget/nugget-thinking.png',
-    ]
-    preload.forEach(src => {
+    Object.values(IMAGE_MAP).forEach(src => {
       const img = new window.Image()
       img.src = src
     })
@@ -57,7 +54,7 @@ export function NuggetStatus({ state, size = 80 }: NuggetStatusProps) {
           <Image
             key={s}
             src={IMAGE_MAP[s]}
-            alt="Nugget"
+            alt={config.agent.name}
             width={size}
             height={size}
             className={`absolute inset-0 rounded-full object-cover transition-opacity duration-300 ${

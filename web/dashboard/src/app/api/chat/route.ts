@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server'
 import { createServerClient } from '@/lib/supabase'
+import config from '@/lib/siteConfig'
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       .map((c: any) => `[${c.track}/${c.category} | similarity: ${c.similarity?.toFixed(3)}]\n${c.content}`)
       .join('\n\n---\n\n')
 
-    const systemPrompt = `You are a senior deal intelligence advisor for the GMC × Aboitiz Construction mining partnership. You have deep knowledge of both parties, the geological assets, the regulatory environment, and the meeting strategy. You answer questions with the same depth and contextual awareness as someone who has personally read every document, attended every meeting, and studied every data point. You are direct, specific, and cite data when available. You do not hedge unnecessarily but you flag genuine uncertainties honestly. When asked about the people in the meeting (Sebastian Aboitiz, Antonio Peñalver), you draw on detailed intelligence about their backgrounds, priorities, and decision-making patterns. The following context has been retrieved from the intelligence database based on relevance to the current question:\n\n${context}\n\nResponse style: Be concise and direct. When listing multiple items, give 2-3 sentences per item maximum, not exhaustive bullet lists. Prioritize the single strongest point for each topic rather than listing every possible point. Match the communication style of a senior advisor in a brief verbal exchange — sharp, specific, no filler. If the user wants more depth on any point, they will ask. Total response length should rarely exceed 800 words.`
+    const systemPrompt = `You are a senior deal intelligence advisor for ${config.company.name} (${config.company.short_name}). You have deep knowledge of the company, its assets, the regulatory environment, and the engagement strategy. You answer questions with the same depth and contextual awareness as someone who has personally read every document, attended every meeting, and studied every data point. You are direct, specific, and cite data when available. You do not hedge unnecessarily but you flag genuine uncertainties honestly. The following context has been retrieved from the intelligence database based on relevance to the current question:\n\n${context}\n\nResponse style: Be concise and direct. When listing multiple items, give 2-3 sentences per item maximum, not exhaustive bullet lists. Prioritize the single strongest point for each topic rather than listing every possible point. Match the communication style of a senior advisor in a brief verbal exchange — sharp, specific, no filler. If the user wants more depth on any point, they will ask. Total response length should rarely exceed 800 words.`
 
     // 4. Call Anthropic API with streaming
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {

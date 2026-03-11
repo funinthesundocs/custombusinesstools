@@ -5,8 +5,9 @@ import Image from 'next/image'
 import { Brain, Send, User, Mic, Volume2 } from 'lucide-react'
 import { NuggetStatus, type NuggetState } from '@/components/NuggetStatus'
 import { supabase } from '@/lib/supabase'
+import config from '@/lib/siteConfig'
 
-const DEAL_ID = '57eb32a1-8550-45d1-8906-64652642c465'
+const DEAL_ID = config.supabase.deal_id
 
 interface DbMessage {
   id: string
@@ -25,10 +26,10 @@ interface Message {
 }
 
 const SUGGESTED_QUESTIONS = [
-  'What are the key geological assets in the partnership?',
-  'Summarize Sebastian Aboitiz\'s decision-making priorities',
+  `What are the key strengths of ${config.company.short_name}?`,
+  'Summarize the target decision-maker\'s priorities',
   'What regulatory risks should we prepare for?',
-  'What is GMC\'s leverage in this deal?',
+  `What is ${config.company.short_name}'s leverage in this deal?`,
   'Outline the recommended meeting strategy',
 ]
 
@@ -168,13 +169,14 @@ export default function AgentPage() {
   const audioQueueRef = useRef<AudioQueue | null>(null)
   const messageIdsRef = useRef<Set<string>>(new Set())
 
-  // Preload all nugget images on mount
+  // Preload all agent images on mount
   useEffect(() => {
+    const agentPath = config.agent.avatar_path
     const preload = [
-      '/images/nugget/nugget-greeting.png',
-      '/images/nugget/nugget-hero-light.png',
-      '/images/nugget/nugget-hero-dark.png',
-      '/images/nugget/nugget-thinking.png',
+      `${agentPath}greeting.png`,
+      `${agentPath}hero-light.png`,
+      `${agentPath}hero-dark.png`,
+      `${agentPath}thinking.png`,
     ]
     preload.forEach(src => {
       const img = new window.Image()
@@ -558,7 +560,7 @@ export default function AgentPage() {
           <div className="flex flex-col items-center justify-center h-full gap-6">
             <NuggetStatus state={nuggetState} size={80} />
             <div className="text-center">
-              <p className="text-zinc-300 text-lg font-medium">Ask anything about the GMC x Aboitiz deal</p>
+              <p className="text-zinc-300 text-lg font-medium">Ask anything about the deal</p>
               <p className="text-zinc-600 text-sm mt-1">Powered by RAG retrieval over the intelligence database</p>
             </div>
             <div className="flex flex-wrap justify-center gap-2 max-w-2xl">
@@ -585,8 +587,8 @@ export default function AgentPage() {
               {msg.role === 'assistant' && (
                 <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden mt-0.5 ${isThinkingMsg ? 'nugget-thinking' : ''}`}>
                   <Image
-                    src={isThinkingMsg ? '/images/nugget/nugget-thinking.png' : '/images/nugget/nugget-hero-dark.png'}
-                    alt="Nugget"
+                    src={isThinkingMsg ? `${config.agent.avatar_path}thinking.png` : `${config.agent.avatar_path}hero-dark.png`}
+                    alt={config.agent.name}
                     width={36}
                     height={36}
                     className="w-full h-full object-cover"

@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-// v2: env var fix
+import config from '../../config.json';
 
 const TASK_PROCESSOR_SECRET = process.env.TASK_PROCESSOR_SECRET;
 
@@ -18,7 +18,7 @@ async function processKnowledgeGap(payload: Record<string, any>): Promise<{ succ
       model: 'claude-sonnet-4-20250514',
       max_tokens: 1000,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      system: `You are a knowledge base researcher for a mining company called Genluiching Mining Corporation (GMC). Your job is to research questions that the company's AI advisor could not answer from its existing knowledge base.
+      system: `You are a knowledge base researcher for ${config.company.name} (${config.company.short_name}). Your job is to research questions that the company's AI advisor could not answer from its existing knowledge base.
 
 Research the question thoroughly. Provide a factual, source-attributed answer suitable for inclusion in a RAG knowledge base. Keep your answer under 300 words. Write in a neutral, informative tone — not conversational.
 
@@ -65,7 +65,7 @@ If you cannot find a reliable answer, respond with exactly: "INSUFFICIENT_DATA" 
         'Prefer': 'return=minimal'
       },
       body: JSON.stringify({
-        deal_id: '57eb32a1-8550-45d1-8906-64652642c465',
+        deal_id: config.supabase.deal_id,
         content: textContent,
         embedding: JSON.stringify(embedding),
         document_type: 'auto-research',

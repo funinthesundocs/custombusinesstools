@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
-import { Send, MapPin, Mail, Phone } from 'lucide-react'
+import { Send, MapPin, Mail } from 'lucide-react'
+import config from '@/lib/siteConfig'
 
 /* ------------------------------------------------------------------ */
 /* CONTACT PAGE — Form + office info                                   */
@@ -48,15 +48,7 @@ export default function ContactPage() {
   return (
     <>
       {/* Hero */}
-      <section className="relative h-[35vh] min-h-[250px] flex items-center justify-center overflow-hidden">
-        <Image
-          src="/images/generated/topo-texture-dark.webp"
-          alt=""
-          fill
-          className="object-cover"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-[#0C1926]/80" />
+      <section className="relative h-[35vh] min-h-[250px] flex items-center justify-center overflow-hidden" style={{ backgroundColor: config.brand.dark }}>
         <div className="relative z-10 text-center px-6">
           <h1 className="font-playfair text-4xl md:text-5xl font-bold text-white mb-3">
             Contact Us
@@ -74,21 +66,11 @@ export default function ContactPage() {
                 <div className="flex items-start gap-4">
                   <MapPin className="text-brand-navy flex-shrink-0 mt-1" size={20} />
                   <div>
-                    <h3 className="font-semibold text-text-primary">Makati Office</h3>
+                    <h3 className="font-semibold text-text-primary">Office</h3>
                     <p className="text-text-secondary text-sm mt-1">
-                      Unit 1411 Ayala Tower One<br />
-                      6767 Ayala Avenue<br />
-                      Makati City 1226, Philippines
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <MapPin className="text-brand-navy flex-shrink-0 mt-1" size={20} />
-                  <div>
-                    <h3 className="font-semibold text-text-primary">International Sales</h3>
-                    <p className="text-text-secondary text-sm mt-1">
-                      1624 Kanunu St. #PHB<br />
-                      Honolulu, HI 96814, USA
+                      {config.company.address.line1}<br />
+                      {config.company.address.line2}<br />
+                      {config.company.address.city}, {config.company.address.country}
                     </p>
                   </div>
                 </div>
@@ -96,16 +78,9 @@ export default function ContactPage() {
                   <Mail className="text-brand-navy flex-shrink-0 mt-1" size={20} />
                   <div>
                     <h3 className="font-semibold text-text-primary">Email</h3>
-                    <a href="mailto:gmc@genluiching.com" className="text-brand-navy text-sm hover:underline">
-                      gmc@genluiching.com
+                    <a href={`mailto:${config.company.email}`} className="text-brand-navy text-sm hover:underline">
+                      {config.company.email}
                     </a>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4">
-                  <Phone className="text-brand-navy flex-shrink-0 mt-1" size={20} />
-                  <div>
-                    <h3 className="font-semibold text-text-primary">Phone</h3>
-                    <p className="text-text-secondary text-sm">+632 8825 6327</p>
                   </div>
                 </div>
               </div>
@@ -117,8 +92,8 @@ export default function ContactPage() {
                 <div className="bg-bg-surface rounded-xl p-8 text-center">
                   <h3 className="text-xl font-bold text-text-primary mb-4">Currently Offline</h3>
                   <p className="text-text-secondary mb-4">Please contact us directly:</p>
-                  <a href="mailto:gmc@genluiching.com" className="text-brand-navy font-semibold hover:underline">
-                    gmc@genluiching.com
+                  <a href={`mailto:${config.company.email}`} className="text-brand-navy font-semibold hover:underline">
+                    {config.company.email}
                   </a>
                 </div>
               ) : (

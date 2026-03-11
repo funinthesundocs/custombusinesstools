@@ -1,31 +1,28 @@
 'use client'
 
 import Link from 'next/link'
-import Image from 'next/image'
+import config from '@/lib/siteConfig'
 
 const columns = [
   {
     title: 'Company',
     links: [
-      { href: '/about', label: 'About GMC' },
+      { href: '/about', label: `About ${config.company.short_name}` },
       { href: '/team', label: 'Leadership' },
-      { href: '/csr', label: 'Community & CSR' },
       { href: '/contact', label: 'Contact Us' },
     ],
   },
   {
-    title: 'The Opportunity',
+    title: 'Resources',
     links: [
       { href: '/presentation', label: 'Presentation' },
-      { href: '/assets', label: 'Evidence Portfolio' },
-      { href: '/assets#cross-section', label: 'Deposit Cross-Section' },
+      { href: '/about#milestones', label: 'Timeline' },
     ],
   },
   {
     title: 'Governance',
     links: [
       { href: '/about#governance', label: 'Corporate Governance' },
-      { href: '/about#milestones', label: 'Timeline' },
     ],
   },
 ]
@@ -53,25 +50,14 @@ export function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2">
             <div className="flex items-center gap-3 mb-6">
-              <Image
-                src="/images/scraped/gmc/cropped-GMC-Logo-2-270x270.png"
-                alt="GMC"
-                width={36}
-                height={36}
-                className="brightness-0 invert opacity-80"
-              />
               <div>
-                <div className="font-playfair font-bold text-lg">GMC</div>
-                <div className="text-[10px] tracking-[0.15em] uppercase text-white/40">Genluiching Mining Corporation</div>
+                <div className="font-playfair font-bold text-lg">{config.company.short_name}</div>
+                <div className="text-[10px] tracking-[0.15em] uppercase text-white/40">{config.company.name}</div>
               </div>
             </div>
             <p className="text-white/50 text-sm leading-relaxed max-w-sm mb-6">
-              A 5,906-hectare polymetallic mineral concession in Davao Oriental, Philippines.
-              Validated by nine independent laboratories across five countries.
+              {config.company.description}
             </p>
-            <div className="text-sm text-white/40">
-              MPSA No. 251(A)-2007-XI
-            </div>
           </div>
 
           {/* Link Columns */}
@@ -95,16 +81,17 @@ export function Footer() {
         <div className="mt-16 pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
             <address className="not-italic text-sm text-white/50 space-y-1">
-              <p>Unit 1411 Ayala Tower One, 6767 Ayala Avenue</p>
-              <p>Makati City 1226, Philippines</p>
+              <p>{config.company.address.line1}</p>
+              <p>{config.company.address.line2}</p>
+              <p>{config.company.address.city}, {config.company.address.country}</p>
               <p className="pt-1">
-                <a href="mailto:gmc@genluiching.com" className="text-white/60 hover:text-brand-gold transition-colors">
-                  gmc@genluiching.com
+                <a href={`mailto:${config.company.email}`} className="text-white/60 hover:text-brand-gold transition-colors">
+                  {config.company.email}
                 </a>
               </p>
             </address>
             <p className="text-white/30 text-sm">
-              &copy; 2026 Genluiching Mining Corporation. All rights reserved.
+              &copy; {new Date().getFullYear()} {config.company.name}. All rights reserved.
             </p>
           </div>
         </div>

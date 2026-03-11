@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { COLOR_OPTIONS, getStoredColor, setStoredColor } from '@/lib/colors'
 import { Check, Database, Github } from 'lucide-react'
+import config from '@/lib/siteConfig'
 
 export default function SettingsPage() {
   const [currentColor, setCurrentColor] = useState('#22D3EE')
@@ -56,28 +57,28 @@ export default function SettingsPage() {
         <h3 className="text-sm font-semibold text-zinc-200 mb-4">Deal Configuration</h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <p className="text-xs text-zinc-500 mb-1">Deal Name</p>
-            <p className="text-sm text-zinc-200 font-medium">GMC × Aboitiz Construction</p>
+            <p className="text-xs text-zinc-500 mb-1">Company Name</p>
+            <p className="text-sm text-zinc-200 font-medium">{config.company.name}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500 mb-1">Source Entity</p>
-            <p className="text-sm text-zinc-200">Genluiching Mining Corporation</p>
+            <p className="text-xs text-zinc-500 mb-1">Short Name</p>
+            <p className="text-sm text-zinc-200">{config.company.short_name}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500 mb-1">Target Entity</p>
-            <p className="text-sm text-zinc-200">Aboitiz Construction</p>
+            <p className="text-xs text-zinc-500 mb-1">Agent Name</p>
+            <p className="text-sm text-zinc-200">{config.agent.name}</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500 mb-1">Target Person</p>
-            <p className="text-sm text-zinc-200">Sabina Aboitiz</p>
+            <p className="text-xs text-zinc-500 mb-1">Domain</p>
+            <p className="text-sm text-zinc-200">{config.company.domain}</p>
           </div>
           <div>
             <p className="text-xs text-zinc-500 mb-1">Deal Type</p>
             <p className="text-sm text-zinc-200">Strategic Partnership</p>
           </div>
           <div>
-            <p className="text-xs text-zinc-500 mb-1">Scale</p>
-            <p className="text-sm text-zinc-200">Multi-Billion Dollar</p>
+            <p className="text-xs text-zinc-500 mb-1">Deal ID</p>
+            <p className="text-sm text-zinc-200 font-mono text-xs">{config.supabase.deal_id}</p>
           </div>
         </div>
       </div>

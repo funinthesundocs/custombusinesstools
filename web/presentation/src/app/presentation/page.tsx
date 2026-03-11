@@ -1,19 +1,16 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { CheckCircle, AlertTriangle, ArrowRight, ChevronDown, Handshake, Users, MapPin } from 'lucide-react'
+import { ChevronDown, ArrowRight, Handshake, Users, MapPin } from 'lucide-react'
+import { presentationSections, heroMetrics, timelinePhases, riskItems, visionContent, askContent, openingContent } from '@/lib/content'
+import config from '@/lib/siteConfig'
 
 /* ------------------------------------------------------------------ */
 /* PRESENTATION — 8-section scroll-snap, projector-ready               */
-/* Gemini images ARE the slides. No text overlaid on baked-in content. */
 /* ------------------------------------------------------------------ */
 
-const sections = [
-  'Opening', 'The Opportunity', 'The Alignment', 'The Proof',
-  'The Plan', 'The Protection', 'The Vision', 'The Ask',
-]
+const sections = presentationSections.map(s => s.shortTitle)
 
 function CountUp({ target, suffix = '' }: { target: string; suffix?: string }) {
   const [value, setValue] = useState('0')
@@ -79,6 +76,13 @@ function RiskRow({ status, title, desc }: { status: 'green' | 'amber'; title: st
       </div>
     </div>
   )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const IconMap: Record<string, any> = {
+  Handshake,
+  Users,
+  MapPin,
 }
 
 export default function PresentationPage() {
@@ -156,34 +160,19 @@ export default function PresentationPage() {
         className="h-[100dvh] overflow-y-auto snap-y snap-mandatory"
         style={{ scrollSnapType: 'y mandatory' }}
       >
-        {/* ============================================================ */}
-        {/* SECTION 1 — OPENING                                          */}
-        {/* Dark + topo texture + counting metrics                       */}
-        {/* ============================================================ */}
-        <section data-section="0" className="min-h-screen flex items-center justify-center snap-start relative bg-[#0C1926]">
-          <Image
-            src="/images/generated/topo-texture-dark.webp"
-            alt=""
-            fill
-            className="object-cover opacity-30"
-            sizes="100vw"
-          />
+        {/* SECTION 1 — OPENING */}
+        <section data-section="0" className="min-h-screen flex items-center justify-center snap-start relative" style={{ backgroundColor: config.brand.dark }}>
           <div className="relative z-10 text-center px-6 max-w-5xl mx-auto">
             <h1 className="font-playfair font-bold text-[clamp(1.75rem,5vw,4.5rem)] text-white mb-4 leading-tight">
-              A Partnership Built for This Moment
+              {openingContent.headline}
             </h1>
             <p className="text-brand-gold text-xl md:text-2xl font-medium tracking-wide mb-16">
-              Genluiching Mining Corporation
+              {config.company.name}
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-              {[
-                { target: '5,906', suffix: ' ha', label: 'Concession' },
-                { target: '9', suffix: '', label: 'Labs' },
-                { target: '8', suffix: '', label: 'Core Samples' },
-                { target: '493', suffix: 'm', label: 'Drilled' },
-              ].map(m => (
+              {heroMetrics.map(m => (
                 <div key={m.label} className="text-center">
-                  <CountUp target={m.target} suffix={m.suffix} />
+                  <CountUp target={m.value} suffix={m.suffix} />
                   <div className="text-white/40 text-xs uppercase tracking-[0.2em] mt-3">{m.label}</div>
                 </div>
               ))}
@@ -194,103 +183,43 @@ export default function PresentationPage() {
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 2 — THE OPPORTUNITY                                  */}
-        {/* Three Gemini mineral images displayed LARGE as cards          */}
-        {/* Images have baked-in text — DO NOT overlay                    */}
-        {/* ============================================================ */}
+        {/* SECTION 2 — THE OPPORTUNITY */}
         <section data-section="1" className="min-h-screen flex items-center snap-start bg-white">
           <div className="content-wrapper w-full py-16">
             <h2 className="font-playfair text-3xl md:text-5xl font-bold text-text-primary text-center mb-12">
               The Opportunity
             </h2>
-            <div className="grid md:grid-cols-3 gap-5 max-w-6xl mx-auto mb-12">
-              {[
-                { src: '/images/generated/iron-hero-data.webp', alt: 'Iron Ore — 67.31% Fe, POSCO Confirmed' },
-                { src: '/images/generated/copper-hero-data.webp', alt: 'Copper — 39.5% Cu, Near-Concentrate Grade' },
-                { src: '/images/generated/gold-hero-data.webp', alt: 'Gold — 20.35 g/t Au, Highest Fire Assay' },
-              ].map((img, i) => (
-                <div
-                  key={img.src}
-                  className="relative rounded-2xl overflow-hidden shadow-lg aspect-[16/10]"
-                  style={{ animationDelay: `${i * 150}ms` }}
-                >
-                  <Image
-                    src={img.src}
-                    alt={img.alt}
-                    fill
-                    className="object-cover"
-                    sizes="(min-width: 768px) 33vw, 100vw"
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="text-center">
-              <p className="font-playfair text-2xl md:text-3xl font-bold text-text-primary">
-                21.6 million metric tons. From less than 9% explored.
-              </p>
-              <p className="text-text-muted mt-2">
-                518 hectares explored of a 5,906-hectare concession
-              </p>
+            <div className="text-center py-20 text-gray-400">
+              Configure opportunity content for your domain
             </div>
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 3 — THE ALIGNMENT                                    */}
-        {/* partnership-ecosystem.png IS the slide                        */}
-        {/* ============================================================ */}
-        <section data-section="2" className="min-h-screen flex items-center justify-center snap-start bg-[#0C1926] relative">
+        {/* SECTION 3 — THE ALIGNMENT */}
+        <section data-section="2" className="min-h-screen flex items-center justify-center snap-start relative" style={{ backgroundColor: config.brand.dark }}>
           <div className="content-wrapper w-full py-16">
             <h2 className="font-playfair text-3xl md:text-5xl font-bold text-white text-center mb-10">
               The Alignment
             </h2>
-            <div className="max-w-5xl mx-auto">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <Image
-                  src="/images/generated/partnership-ecosystem.webp"
-                  alt="GMC and Strategic Partner — complementary capabilities forming the natural next step"
-                  width={1920}
-                  height={1080}
-                  className="w-full h-auto"
-                  sizes="(min-width: 1024px) 80vw, 100vw"
-                />
-              </div>
+            <div className="text-center py-20 text-white/30">
+              Configure alignment content for your domain
             </div>
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 4 — THE PROOF                                        */}
-        {/* cross-section-infographic.png fills viewport                  */}
-        {/* ============================================================ */}
-        <section data-section="3" className="min-h-screen flex items-center justify-center snap-start bg-[#0C1926] relative">
+        {/* SECTION 4 — THE PROOF */}
+        <section data-section="3" className="min-h-screen flex items-center justify-center snap-start relative" style={{ backgroundColor: config.brand.dark }}>
           <div className="content-wrapper w-full py-16">
             <h2 className="font-playfair text-3xl md:text-5xl font-bold text-white text-center mb-10">
               The Proof
             </h2>
-            <div className="max-w-6xl mx-auto">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-                <Image
-                  src="/images/generated/cross-section-infographic.webp"
-                  alt="Geological deposit cross-section — 8 core samples, iron oxide cap, transition zone, sulfide zone, porphyry target"
-                  width={1920}
-                  height={1080}
-                  className="w-full h-auto"
-                  sizes="100vw"
-                />
-              </div>
-              <p className="text-white/30 text-xs text-center mt-4 italic">
-                Based on SGECS geological assessment filed with MGB Region XI, June 2025
-              </p>
+            <div className="text-center py-20 text-white/30">
+              Configure proof/evidence content for your domain
             </div>
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 5 — THE PLAN                                         */}
-        {/* 5-phase timeline with decision gates                         */}
-        {/* ============================================================ */}
+        {/* SECTION 5 — THE PLAN */}
         <section data-section="4" className="min-h-screen flex items-center snap-start bg-white">
           <div className="content-wrapper w-full py-16">
             <h2 className="font-playfair text-3xl md:text-5xl font-bold text-text-primary text-center mb-16">
@@ -299,31 +228,15 @@ export default function PresentationPage() {
             <div className="max-w-5xl mx-auto">
               {/* Desktop horizontal timeline */}
               <div className="hidden md:block relative">
-                {/* Connecting line */}
                 <div className="absolute top-7 left-[10%] right-[10%] h-0.5 bg-border" />
-                <div className="grid grid-cols-5 gap-4">
-                  {[
-                    { phase: 1, title: 'Exploration Partnership', desc: 'Confirm copper at depth. Ship first vessel.' },
-                    { phase: 2, title: 'Feasibility Study', desc: 'JORC-compliant resource estimate.' },
-                    { phase: 3, title: 'Permitting', desc: 'ECC. Development permits.' },
-                    { phase: 4, title: 'Plant Construction', desc: 'Processing facility. AAAA capability.' },
-                    { phase: 5, title: 'Production', desc: 'Commercial operations. Recurring revenue.' },
-                  ].map((p) => (
+                <div className={`grid gap-4`} style={{ gridTemplateColumns: `repeat(${timelinePhases.length}, 1fr)` }}>
+                  {timelinePhases.map((p) => (
                     <div key={p.phase} className="text-center relative">
                       <div className="w-14 h-14 rounded-full bg-brand-navy text-white flex items-center justify-center font-mono font-bold text-lg mx-auto mb-4 relative z-10 shadow-lg">
                         {p.phase}
                       </div>
                       <h3 className="font-bold text-text-primary text-sm mb-2">{p.title}</h3>
-                      <p className="text-text-secondary text-xs leading-relaxed">{p.desc}</p>
-                    </div>
-                  ))}
-                </div>
-                {/* Decision gates */}
-                <div className="flex justify-between mt-6 px-[15%]">
-                  {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="text-center">
-                      <div className="w-3 h-3 rotate-45 bg-brand-gold mx-auto mb-1" />
-                      <span className="text-brand-gold text-[10px] uppercase tracking-widest font-semibold">Evaluate → Commit</span>
+                      <p className="text-text-secondary text-xs leading-relaxed">{p.description}</p>
                     </div>
                   ))}
                 </div>
@@ -331,20 +244,14 @@ export default function PresentationPage() {
 
               {/* Mobile vertical timeline */}
               <div className="md:hidden space-y-6">
-                {[
-                  { phase: 1, title: 'Exploration Partnership', desc: 'Confirm copper at depth. Ship first vessel.' },
-                  { phase: 2, title: 'Feasibility Study', desc: 'JORC-compliant resource estimate.' },
-                  { phase: 3, title: 'Permitting', desc: 'ECC. Development permits.' },
-                  { phase: 4, title: 'Plant Construction', desc: 'Processing facility. AAAA capability.' },
-                  { phase: 5, title: 'Production', desc: 'Commercial operations. Recurring revenue.' },
-                ].map(p => (
+                {timelinePhases.map(p => (
                   <div key={p.phase} className="flex items-start gap-4">
                     <div className="w-12 h-12 rounded-full bg-brand-navy text-white flex items-center justify-center font-mono font-bold flex-shrink-0">
                       {p.phase}
                     </div>
                     <div className="bg-bg-surface rounded-xl p-5 flex-1">
                       <h3 className="font-bold text-text-primary">{p.title}</h3>
-                      <p className="text-text-secondary text-sm mt-1">{p.desc}</p>
+                      <p className="text-text-secondary text-sm mt-1">{p.description}</p>
                     </div>
                   </div>
                 ))}
@@ -357,18 +264,8 @@ export default function PresentationPage() {
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 6 — THE PROTECTION                                   */}
-        {/* Risk status rows on dark + topo                              */}
-        {/* ============================================================ */}
-        <section data-section="5" className="min-h-screen flex items-center snap-start relative bg-[#0C1926]">
-          <Image
-            src="/images/generated/topo-texture-dark.webp"
-            alt=""
-            fill
-            className="object-cover opacity-20"
-            sizes="100vw"
-          />
+        {/* SECTION 6 — THE PROTECTION */}
+        <section data-section="5" className="min-h-screen flex items-center snap-start relative" style={{ backgroundColor: config.brand.dark }}>
           <div className="relative z-10 content-wrapper w-full py-16">
             <h2 className="font-playfair text-3xl md:text-5xl font-bold text-white text-center mb-4">
               The Protection
@@ -377,78 +274,53 @@ export default function PresentationPage() {
               We have already thought about everything you are about to ask
             </p>
             <div className="max-w-3xl mx-auto divide-y divide-white/10">
-              <RiskRow status="green" title="FPIC Approval" desc="Approved by indigenous communities. 60% Lumad workforce. Years of genuine partnership." />
-              <RiskRow status="green" title="MGB Operator" desc="Director ORDER confirming GMC as authorized operator of MPSA 251(A)-2007-XI." />
-              <RiskRow status="green" title="Legal Standing" desc="Final court ruling on DMC-GMC dispute. Permanently resolved as a matter of law. Cannot be refiled." />
-              <RiskRow status="amber" title="Copper at Depth" desc="Sulfide minerals confirmed at 60–65m. Eight core samples validate the porphyry model. Phase 1 drilling priority." />
-              <RiskRow status="amber" title="Mercury Trace" desc="Identified proactively. 1,245–1,429 mg/kg in ore samples. Minamata Convention compliance required. Solvable engineering challenge." />
+              {riskItems.map((item, i) => (
+                <RiskRow key={i} status={item.status} title={item.title} desc={item.description} />
+              ))}
             </div>
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 7 — THE VISION                                       */}
-        {/* hero-landscape-enhanced.png full bleed                       */}
-        {/* ============================================================ */}
-        <section data-section="6" className="min-h-screen flex items-center justify-center snap-start relative">
-          <Image
-            src="/images/generated/hero-landscape-enhanced.webp"
-            alt="Davao Oriental — tropical mountains at golden hour"
-            fill
-            className="object-cover"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-black/70" />
+        {/* SECTION 7 — THE VISION */}
+        <section data-section="6" className="min-h-screen flex items-center justify-center snap-start relative" style={{ backgroundColor: config.brand.dark }}>
           <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
             <h2 className="font-playfair font-bold text-4xl md:text-6xl text-white mb-6 leading-tight">
-              Building for Business to Prosper<br className="hidden md:block" />and Communities to Thrive
+              {visionContent.headline}
             </h2>
             <p className="text-white/60 text-xl mt-8">
-              <span className="font-mono font-bold text-white text-3xl">32</span> years remaining on MPSA.
-              A multi-generational partnership.
+              {visionContent.subheadline}
             </p>
           </div>
         </section>
 
-        {/* ============================================================ */}
-        {/* SECTION 8 — THE ASK                                          */}
-        {/* Clean white, extreme negative space                          */}
-        {/* ============================================================ */}
+        {/* SECTION 8 — THE ASK */}
         <section data-section="7" className="min-h-screen flex items-center snap-start bg-white">
           <div className="content-wrapper w-full text-center py-16">
             <h2 className="font-playfair font-bold text-4xl md:text-6xl text-brand-navy mb-16">
-              The Next Step
+              {askContent.headline}
             </h2>
             <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-16">
-              {[
-                { Icon: Handshake, label: 'Phase 1 exploration partnership' },
-                { Icon: Users, label: 'Technical team introduction' },
-                { Icon: MapPin, label: 'Joint site assessment' },
-              ].map(item => (
-                <div key={item.label} className="bg-bg-surface rounded-xl p-8">
-                  <item.Icon className="text-brand-gold mx-auto mb-4" size={32} />
-                  <h3 className="font-semibold text-text-primary text-lg">{item.label}</h3>
-                </div>
-              ))}
+              {askContent.items.map(item => {
+                const Icon = IconMap[item.icon] || Handshake
+                return (
+                  <div key={item.label} className="bg-bg-surface rounded-xl p-8">
+                    <Icon className="text-brand-gold mx-auto mb-4" size={32} />
+                    <h3 className="font-semibold text-text-primary text-lg">{item.label}</h3>
+                  </div>
+                )
+              })}
             </div>
             <div className="flex flex-wrap items-center justify-center gap-4 mb-12">
               {online && (
                 <Link
-                  href="/advisor"
+                  href="/contact"
                   className="inline-flex items-center gap-2 bg-brand-navy text-white font-semibold px-8 py-4 rounded-full transition-all duration-300 hover:bg-brand-navy/90 text-[15px]"
                 >
-                  Ask Our AI Advisor
+                  Get In Touch
                   <ArrowRight size={16} />
                 </Link>
               )}
             </div>
-            <Image
-              src="/images/scraped/gmc/cropped-GMC-Logo-2-270x270.png"
-              alt="GMC"
-              width={48}
-              height={48}
-              className="mx-auto opacity-30"
-            />
           </div>
         </section>
       </div>

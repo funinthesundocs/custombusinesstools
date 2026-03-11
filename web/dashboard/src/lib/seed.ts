@@ -1,4 +1,5 @@
 import { createServerClient } from './supabase'
+import config from './siteConfig'
 
 const PHASE_NAMES = [
   'Research & Intelligence',
@@ -20,7 +21,7 @@ export async function seedDatabase() {
   const { data: existing } = await supabase
     .from('deals')
     .select('id')
-    .eq('name', 'GMC × Aboitiz Construction')
+    .eq('name', config.company.name)
     .limit(1)
 
   if (existing && existing.length > 0) {
@@ -31,16 +32,16 @@ export async function seedDatabase() {
   const { data: deal, error: dealError } = await supabase
     .from('deals')
     .insert({
-      name: 'GMC × Aboitiz Construction',
-      source_entity: 'Genluiching Mining Corporation',
-      target_entity: 'Aboitiz Construction',
-      target_person: 'Sabina Aboitiz',
+      name: config.company.name,
+      source_entity: config.company.name,
+      target_entity: '[Configure target entity in deal.md]',
+      target_person: '[Configure target person in deal.md]',
       status: 'active',
       deal_config: {
         type: 'strategic_partnership',
-        scale: 'multi_billion',
+        scale: '[Configure in deal.md]',
         meeting_format: 'physical',
-        location: 'Southern Philippines'
+        location: '[Configure in deal.md]'
       }
     })
     .select('id')

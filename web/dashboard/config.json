@@ -1,0 +1,56 @@
+{
+  "company": {
+    "name": "Your Company Name",
+    "short_name": "YCN",
+    "tagline": "Your company tagline here",
+    "description": "A brief description of your company and what you do.",
+    "domain": "yoursite.com",
+    "email": "contact@yoursite.com",
+    "address": {
+      "line1": "123 Main Street",
+      "line2": "Suite 100",
+      "city": "Your City",
+      "country": "Your Country"
+    },
+    "founded_year": "2024"
+  },
+  "agent": {
+    "name": "Agent",
+    "personality": "A knowledgeable AI advisor for your organization. Helpful, concise, and confident. Answers what is asked without over-explaining. Lets the user lead the conversation.",
+    "avatar_path": "/images/agent/",
+    "voice_id": "dtSEyYGNJqjrtBArPCVZ",
+    "voice_provider": "elevenlabs"
+  },
+  "brand": {
+    "primary": "#2563EB",
+    "secondary": "#7C3AED",
+    "accent": "#F59E0B",
+    "dark": "#0F172A",
+    "light": "#F8FAFC",
+    "success": "#16A34A",
+    "warning": "#D97706"
+  },
+  "fonts": {
+    "headline": "Playfair Display",
+    "body": "DM Sans",
+    "mono": "JetBrains Mono"
+  },
+  "supabase": {
+    "deal_id": "00000000-0000-0000-0000-000000000000"
+  },
+  "market_data": {
+    "enabled": false,
+    "weather_location": {
+      "name": "",
+      "latitude": 0,
+      "longitude": 0
+    }
+  },
+  "nav_links": [
+    { "label": "About", "href": "/about/" },
+    { "label": "Services", "href": "/services/" },
+    { "label": "Presentation", "href": "/presentation/" },
+    { "label": "Team", "href": "/team/" },
+    { "label": "Contact", "href": "/contact/" }
+  ]
+}

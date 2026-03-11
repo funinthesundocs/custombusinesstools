@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { Settings, Bell } from 'lucide-react'
 import Link from 'next/link'
+import config from '@/lib/siteConfig'
 
 const PAGE_NAMES: Record<string, string> = {
   '/': 'Dashboard',
@@ -26,7 +27,7 @@ export function TopBar() {
       <div className="flex items-center gap-2 text-sm">
         <span className="font-bold text-[var(--color-primary)] tracking-wider">KOP</span>
         <span className="text-zinc-600">/</span>
-        <span className="text-zinc-400">GMC × Aboitiz</span>
+        <span className="text-zinc-400">{config.company.short_name}</span>
         <span className="text-zinc-600">/</span>
         <span className="text-white font-medium">{pageName}</span>
       </div>

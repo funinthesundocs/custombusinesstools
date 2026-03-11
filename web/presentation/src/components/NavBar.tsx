@@ -2,18 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { Menu, X, MessageCircle } from 'lucide-react'
 import { useAIAssistant } from '@/contexts/AIAssistantContext'
+import config from '@/lib/siteConfig'
 
-const navLinks = [
-  { href: '/about', label: 'About' },
-  { href: '/assets', label: 'Assets' },
-  { href: '/presentation', label: 'Presentation' },
-  { href: '/team', label: 'Team' },
-  { href: '/csr', label: 'CSR' },
-  { href: '/contact', label: 'Contact' },
-]
+const navLinks = config.nav_links.map(l => ({ href: l.href.replace(/\/$/, '') || '/', label: l.label }))
 
 export function NavBar() {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -43,18 +36,12 @@ export function NavBar() {
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-[72px]">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <Image
-              src="/images/scraped/gmc/cropped-GMC-Logo-2-270x270.png"
-              alt="GMC"
-              width={46}
-              height={46}
-            />
             <div className="flex flex-col">
               <span className="font-playfair font-bold text-[22px] leading-tight text-brand-navy">
-                GMC
+                {config.company.short_name}
               </span>
               <span className="hidden sm:block text-[14px] tracking-[0.15em] uppercase leading-tight text-text-muted">
-                Genluiching Mining
+                {config.company.name}
               </span>
             </div>
           </Link>
@@ -79,10 +66,10 @@ export function NavBar() {
             <button
               onClick={toggleAI}
               className="ml-2 flex items-center gap-1.5 px-4 py-2 text-[16px] font-semibold tracking-wide rounded-full transition-all duration-300 bg-brand-gold text-white hover:bg-brand-gold/90"
-              aria-label="Ask Nugget"
+              aria-label={`Ask ${config.agent.name}`}
             >
               <MessageCircle size={14} />
-              Ask Nugget
+              Ask {config.agent.name}
             </button>
           </div>
 
@@ -128,7 +115,7 @@ export function NavBar() {
               className="mt-3 bg-brand-gold text-white text-center py-4 min-h-[48px] rounded-xl font-semibold text-[15px] flex items-center justify-center gap-2"
             >
               <MessageCircle size={16} />
-              Ask Nugget
+              Ask {config.agent.name}
             </button>
           </div>
         </div>
