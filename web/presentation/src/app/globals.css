@@ -1,0 +1,194 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* AOS */
+@import 'aos/dist/aos.css';
+
+/* Swiper */
+@import 'swiper/css';
+@import 'swiper/css/pagination';
+@import 'swiper/css/navigation';
+@import 'swiper/css/effect-fade';
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply text-text-primary bg-bg-primary font-sans antialiased;
+    -webkit-overflow-scrolling: touch;
+  }
+  img, video, svg {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+@layer components {
+  .metric-number {
+    @apply font-mono font-bold text-brand-navy;
+  }
+  .metric-label {
+    @apply font-sans text-sm text-text-muted uppercase tracking-widest;
+  }
+  .section-padding {
+    @apply py-24 max-md:py-16;
+  }
+  .content-wrapper {
+    @apply max-w-7xl mx-auto px-6;
+  }
+  .gradient-fallback {
+    background: linear-gradient(135deg, #0C1926, #1B365D);
+  }
+}
+
+/* Hero Swiper — full viewport */
+.hero-swiper {
+  width: 100%;
+  height: 100dvh;
+  height: 100vh; /* fallback for older browsers */
+}
+@supports (height: 100dvh) {
+  .hero-swiper { height: 100dvh; }
+}
+.hero-swiper .swiper-slide {
+  position: relative;
+  overflow: hidden;
+}
+.hero-swiper .swiper-pagination-bullet {
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  transition: all 0.3s;
+}
+.hero-swiper .swiper-pagination-bullet-active {
+  background: #C5922E;
+  width: 32px;
+  border-radius: 6px;
+}
+
+/* Metrics Swiper */
+.metrics-swiper .swiper-wrapper {
+  transition-timing-function: linear;
+}
+
+/* Mineral Cards Swiper */
+.mineral-swiper .swiper-slide {
+  height: auto;
+}
+.mineral-swiper .swiper-pagination-bullet {
+  background: #1B365D;
+  opacity: 0.3;
+}
+.mineral-swiper .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #C5922E;
+}
+.mineral-swiper .swiper-pagination-progressbar-fill {
+  background: #C5922E;
+}
+
+/* Credentials Swiper */
+.credentials-swiper .swiper-slide {
+  height: auto;
+}
+.credentials-swiper .swiper-pagination-bullet {
+  background: white;
+  opacity: 0.4;
+}
+.credentials-swiper .swiper-pagination-bullet-active {
+  opacity: 1;
+  background: #C5922E;
+}
+
+/* Metric Card — radial burst hover, cycling Red → Blue → Orange → Teal */
+.metric-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: var(--metric-color);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1),
+              height 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+@media (hover: hover) {
+  .metric-card:hover::before {
+    width: 200%;
+    height: 200%;
+  }
+}
+/* Color cycle: Red, Blue, Orange, Teal — repeat */
+.metric-card:nth-child(4n+1) { --metric-color: #E63946; }
+.metric-card:nth-child(4n+2) { --metric-color: #0A0F6B; }
+.metric-card:nth-child(4n+3) { --metric-color: #FF6B35; }
+.metric-card:nth-child(4n+0) { --metric-color: #1B7B34; }
+
+/* First metric card subtle bounce every 5s */
+.metric-card--pulse {
+  animation: metric-nudge 5s ease-in-out infinite;
+}
+.metric-card--pulse:hover {
+  animation: none;
+}
+@keyframes metric-nudge {
+  0%, 85%, 100% { transform: translateY(0); }
+  89% { transform: translateY(-6px); }
+  92% { transform: translateY(2px); }
+  95% { transform: translateY(-3px); }
+  97% { transform: translateY(1px); }
+}
+
+/* Nugget avatar animations */
+@keyframes listening-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45, 138, 78, 0.6); }
+  50% { box-shadow: 0 0 0 12px rgba(45, 138, 78, 0); }
+}
+.nugget-listening { animation: listening-pulse 1.5s ease-in-out infinite; border-radius: 50%; }
+
+@keyframes thinking-glow {
+  0%, 100% { box-shadow: 0 0 15px 5px rgba(197, 146, 46, 0.3); }
+  50% { box-shadow: 0 0 25px 10px rgba(197, 146, 46, 0.5); }
+}
+.nugget-thinking { animation: thinking-glow 2s ease-in-out infinite; border-radius: 50%; }
+
+@keyframes talking-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(197, 146, 46, 0.6); }
+  50% { box-shadow: 0 0 0 10px rgba(197, 146, 46, 0); }
+}
+.nugget-talking { animation: talking-pulse 0.8s ease-in-out infinite; border-radius: 50%; }
+
+/* Safe area padding for notched devices */
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* iOS: disable parallax on touch devices (background-attachment: fixed causes jank) */
+@supports (-webkit-touch-callout: none) {
+  .parallax-bg {
+    background-attachment: scroll !important;
+  }
+}
+
+/* Projector optimization: scale up at 1920px+ */
+@media (min-width: 1920px) {
+  .projector-scale {
+    font-size: 115%;
+  }
+}

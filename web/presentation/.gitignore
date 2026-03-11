@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env.local
+out/
+.netlify/
+# Unused image folders - not referenced by any code
+public/images/enhanced/
+public/images/mockups/
+public/images/reference/

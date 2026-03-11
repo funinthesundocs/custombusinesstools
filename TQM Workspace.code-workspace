@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "kop-launch/.claude"
+		},
+		{
+			"path": "kop-launch/docs"
+		},
+		{
+			"path": "kop-launch/intelligence"
+		},
+		{
+			"path": "kop-launch/production"
+		},
+		{
+			"path": "kop-launch/scripts"
+		},
+		{
+			"path": "kop-launch/supabase"
+		},
+		{
+			"path": "kop-launch/web"
+		}
+	],
+	"settings": {}
+}
