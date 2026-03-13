@@ -1,6 +1,6 @@
 # Template Configuration
 
-This directory contains all non-sensitive project configuration for the KOP template.
+This directory contains all non-sensitive project configuration for the RAG Factory template.
 
 ## Files
 

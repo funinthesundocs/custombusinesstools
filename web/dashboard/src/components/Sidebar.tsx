@@ -38,7 +38,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex items-center gap-2 px-4 h-12 border-b border-zinc-800">
         {!collapsed && (
-          <span className="text-sm font-bold tracking-wider text-zinc-100">KOP</span>
+          <span className="text-sm font-bold tracking-wider text-zinc-100">RAG Factory</span>
         )}
         <button
           onClick={() => setCollapsed(!collapsed)}

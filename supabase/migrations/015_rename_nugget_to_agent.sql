@@ -1,5 +1,5 @@
 -- Migration: rename 'nugget' to 'agent' in agent_tasks source constraint
--- The KOP template renamed the NuggetStatus component to AgentStatus and
+-- The RAG Factory template renamed the NuggetStatus component to AgentStatus and
 -- updated all source values from 'nugget' to 'agent'.
 
 -- Drop old constraint first (so UPDATE isn't blocked)

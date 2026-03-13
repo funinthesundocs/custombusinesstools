@@ -1,5 +1,5 @@
 /**
- * KOP Template — Typed config re-export
+ * RAG Factory — Typed config re-export
  *
  * web/presentation/config.json is the single source of truth.
  * This file provides a typed wrapper for use in scripts and build tools.

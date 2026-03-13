@@ -430,7 +430,7 @@ function delay(ms: number) {
 
 async function main() {
   console.log("═══════════════════════════════════════════════");
-  console.log("  KOP Multimodal Embed — Pinecone + Gemini 2");
+  console.log("  RAG Factory Multimodal Embed — Pinecone + Gemini 2");
   console.log("═══════════════════════════════════════════════");
   console.log(`Model:   ${EMBEDDING_MODEL} (${EMBEDDING_DIMS} dims)`);
   console.log(`Index:   ${INDEX_NAME} / namespace: ${PROJECT_ID}`);

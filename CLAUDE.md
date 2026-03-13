@@ -1,4 +1,4 @@
-# Knowledge Operations Platform (KOP)
+# RAG Factory
 
 ## What This Is
 A system that gathers intelligence, processes documents, engineers context,
@@ -71,7 +71,7 @@ NEVER assume one engine handles everything. Route per task:
 - `production/source-documents/` — 9 curated documents for production engines
 - `production/prompts/` — Engine-specific prompts per deliverable
 - `production/outputs/` — Versioned deliverable outputs (v1/v2/v3/final)
-- `web/dashboard/` — KOP Dashboard (localhost:8888)
+- `web/dashboard/` — RAG Factory Dashboard (localhost:8888)
 - `web/presentation/` — Client-facing deliverable site
 - `docs/` — Narrative arc, meeting prep, design specs
 

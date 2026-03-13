@@ -1,6 +1,6 @@
 # RAG Factory
 
-A production-ready Knowledge Operations Platform with bidirectional AI agents, RAG-powered intelligence, real-time research, voice interaction, and cinematic web presentation.
+A production-ready RAG agent template with bidirectional AI agents, RAG-powered intelligence, real-time research, voice interaction, and cinematic web presentation.
 
 **What it does:** Your users talk to an AI agent that knows everything about your business. When the agent can't answer, it researches in real time — searches the web, synthesizes the answer, embeds it into the knowledge base, and delivers it back to the user within seconds. The system gets smarter with every question it can't answer.
 

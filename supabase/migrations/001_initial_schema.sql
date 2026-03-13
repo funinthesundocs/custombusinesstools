@@ -1,4 +1,4 @@
--- KOP Initial Schema
+-- RAG Factory Initial Schema
 -- Run this migration after connecting to your Supabase project
 
 -- Enable pgvector

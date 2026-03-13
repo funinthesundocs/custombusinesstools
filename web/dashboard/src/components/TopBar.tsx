@@ -25,7 +25,7 @@ export function TopBar() {
   return (
     <header className="flex items-center justify-between h-12 px-4 bg-zinc-800 border-b border-zinc-700 shrink-0">
       <div className="flex items-center gap-2 text-sm">
-        <span className="font-bold text-[var(--color-primary)] tracking-wider">KOP</span>
+        <span className="font-bold text-[var(--color-primary)] tracking-wider">RAG Factory</span>
         <span className="text-zinc-600">/</span>
         <span className="text-zinc-400">{config.company.short_name}</span>
         <span className="text-zinc-600">/</span>

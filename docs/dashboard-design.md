@@ -29,7 +29,7 @@ Active item: Primary color left-border + glow background + white text
 Collapsed: Icons only with tooltips
 
 ## Top Bar
-Left: Toggle + KOP + breadcrumb (Deal Name › Current Page)
+Left: Toggle + RAG Factory + breadcrumb (Deal Name › Current Page)
 Right: Color picker circle, Settings gear, Notification bell with count badge
 
 ## Command Bar

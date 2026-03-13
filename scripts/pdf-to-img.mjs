@@ -3,7 +3,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 
 /**
- * PDF to Image converter — KOP Template
+ * PDF to Image converter — RAG Factory
  *
  * Configure the pdfs array below for each deployment.
  * Paths are relative to the project root (C:/Antigravity/Custombusinesstools/).

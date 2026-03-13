@@ -1,5 +1,5 @@
 /**
- * KOP Template — System Prompt Builder
+ * RAG Factory — System Prompt Builder
  *
  * Exports buildSystemPrompt(), which assembles the complete system prompt from:
  * 1. Static sections — defined here (universal patterns, preserved across deployments)

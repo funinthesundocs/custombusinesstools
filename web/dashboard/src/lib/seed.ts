@@ -68,7 +68,7 @@ export async function seedDatabase() {
   await supabase.from('activity_log').insert({
     deal_id: deal.id,
     event_type: 'system',
-    title: 'KOP Dashboard initialized',
+    title: 'RAG Factory Dashboard initialized',
     detail: 'Deal record created. Phase 1: Research & Intelligence started.',
     source: 'system',
     severity: 'success'
