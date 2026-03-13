@@ -249,7 +249,7 @@ export default async (req: Request) => {
       lengthGuidance: lengthGuidance || '',
     })
 
-    const maxTokens = voice ? 150 : 400
+    const maxTokens = voice ? 80 : 120
 
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
