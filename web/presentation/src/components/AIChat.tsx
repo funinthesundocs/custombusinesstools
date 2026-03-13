@@ -685,7 +685,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
       {/* Header */}
       <div className={`flex items-center gap-4 px-4 py-6 border-b ${fullPage ? 'border-border' : 'border-gray-100'}`}>
         <div className="flex-shrink-0 w-[134px] h-[134px] rounded-full overflow-hidden shadow-lg flex items-center justify-center">
-          <Image src={`${config.agent.avatar_path}hero-light.png`} alt={config.agent.name} width={112} height={112} className="w-[112px] h-[112px] object-cover flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
+          <div className="w-[112px] h-[112px] flex items-center justify-center bg-amber-100 rounded-full"><MessageCircle size={48} className="text-amber-500" /></div>
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">
           <h2 className="text-base font-bold text-text-primary tracking-wide whitespace-nowrap">ASK {config.agent.name.toUpperCase()}</h2>
