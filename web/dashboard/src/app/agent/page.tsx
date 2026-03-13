@@ -3,11 +3,11 @@
 import { useState, useRef, useEffect, useCallback, FormEvent } from 'react'
 import Image from 'next/image'
 import { Brain, Send, User, Mic, Volume2 } from 'lucide-react'
-import { NuggetStatus, type NuggetState } from '@/components/NuggetStatus'
+import { AgentStatus, type AgentState } from '@/components/AgentStatus'
 import { supabase } from '@/lib/supabase'
 import config from '@/lib/siteConfig'
 
-const DEAL_ID = config.supabase.deal_id
+const DEAL_ID = config.supabase.project_id
 
 interface DbMessage {
   id: string
@@ -515,11 +515,11 @@ export default function AgentPage() {
     transcriptRef.current = ''
   }, [clearSilenceTimer, sendMessage])
 
-  // Derive Nugget visual state from existing variables
+  // Derive agent visual state from existing variables
   const lastMessage = messages[messages.length - 1]
   const isThinking = isStreaming && (!lastMessage || lastMessage.role !== 'assistant' || !lastMessage.content)
   const isTalking = (isStreaming && lastMessage?.role === 'assistant' && !!lastMessage.content) || isSpeaking
-  const nuggetState: NuggetState = isListening ? 'listening' : isThinking ? 'thinking' : isTalking ? 'talking' : 'idle'
+  const agentState: AgentState = isListening ? 'listening' : isThinking ? 'thinking' : isTalking ? 'talking' : 'idle'
 
   return (
     <div className="page-enter flex flex-col h-[calc(100vh-7rem)] -mt-2">
@@ -558,7 +558,7 @@ export default function AgentPage() {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-6">
-            <NuggetStatus state={nuggetState} size={80} />
+            <AgentStatus state={agentState} size={80} />
             <div className="text-center">
               <p className="text-zinc-300 text-lg font-medium">Ask anything about the deal</p>
               <p className="text-zinc-600 text-sm mt-1">Powered by RAG retrieval over the intelligence database</p>
@@ -578,14 +578,14 @@ export default function AgentPage() {
         ) : (
           <>
             <div className="flex justify-center py-2 mb-2">
-              <NuggetStatus state={nuggetState} size={60} />
+              <AgentStatus state={agentState} size={60} />
             </div>
             {messages.map((msg, i) => {
               const isThinkingMsg = msg.role === 'assistant' && isStreaming && i === messages.length - 1 && !msg.content
               return (
             <div key={msg.id || i} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'assistant' && (
-                <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden mt-0.5 ${isThinkingMsg ? 'nugget-thinking' : ''}`}>
+                <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden mt-0.5 ${isThinkingMsg ? 'agent-thinking' : ''}`}>
                   <Image
                     src={isThinkingMsg ? `${config.agent.avatar_path}thinking.png` : `${config.agent.avatar_path}hero-dark.png`}
                     alt={config.agent.name}

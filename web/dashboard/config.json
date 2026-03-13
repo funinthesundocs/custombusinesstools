@@ -16,10 +16,15 @@
   },
   "agent": {
     "name": "Agent",
+    "role": "REPLACE_WITH_AGENT_ROLE",
     "personality": "A knowledgeable AI advisor for your organization. Helpful, concise, and confident. Answers what is asked without over-explaining. Lets the user lead the conversation.",
     "avatar_path": "/images/agent/",
-    "voice_id": "dtSEyYGNJqjrtBArPCVZ",
-    "voice_provider": "elevenlabs"
+    "systemPromptPath": "./system-prompt.md"
+  },
+  "voice": {
+    "provider": "elevenlabs",
+    "voiceId": "REPLACE_WITH_VOICE_ID",
+    "model": "eleven_multilingual_v2"
   },
   "brand": {
     "primary": "#2563EB",
@@ -36,7 +41,7 @@
     "mono": "JetBrains Mono"
   },
   "supabase": {
-    "deal_id": "00000000-0000-0000-0000-000000000000"
+    "project_id": "REPLACE_WITH_PROJECT_ID"
   },
   "market_data": {
     "enabled": false,
@@ -44,6 +49,17 @@
       "name": "",
       "latitude": 0,
       "longitude": 0
+    }
+  },
+  "rag": {
+    "embeddingModel": "models/gemini-embedding-2-preview",
+    "embeddingDimensions": 3072,
+    "matchCount": 15,
+    "similarityThreshold": 0.3,
+    "researchThreshold": 0.7,
+    "chunkMaxChars": 3200,
+    "pinecone": {
+      "indexName": "kop-intelligence"
     }
   },
   "nav_links": [

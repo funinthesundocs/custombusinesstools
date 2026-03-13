@@ -4,37 +4,37 @@ import { useEffect } from 'react'
 import Image from 'next/image'
 import config from '@/lib/siteConfig'
 
-export type NuggetState = 'idle' | 'listening' | 'thinking' | 'talking'
+export type AgentState = 'idle' | 'listening' | 'thinking' | 'talking'
 
-interface NuggetStatusProps {
-  state: NuggetState
+interface AgentStatusProps {
+  state: AgentState
   size?: number
 }
 
 const agentPath = config.agent.avatar_path
 
-const IMAGE_MAP: Record<NuggetState, string> = {
+const IMAGE_MAP: Record<AgentState, string> = {
   idle: `${agentPath}greeting.png`,
-  listening: `${agentPath}hero-dark.png`,
+  listening: `${agentPath}hero-light.png`,
   thinking: `${agentPath}thinking.png`,
-  talking: `${agentPath}hero-dark.png`,
+  talking: `${agentPath}hero-light.png`,
 }
 
-const LABEL_MAP: Record<NuggetState, string> = {
+const LABEL_MAP: Record<AgentState, string> = {
   idle: 'Ask me anything',
   listening: 'Listening...',
   thinking: 'Thinking...',
   talking: 'Speaking...',
 }
 
-const ANIMATION_MAP: Record<NuggetState, string> = {
+const ANIMATION_MAP: Record<AgentState, string> = {
   idle: '',
-  listening: 'nugget-listening',
-  thinking: 'nugget-thinking',
-  talking: 'nugget-talking',
+  listening: 'agent-listening',
+  thinking: 'agent-thinking',
+  talking: 'agent-talking',
 }
 
-export function NuggetStatus({ state, size = 80 }: NuggetStatusProps) {
+export function AgentStatus({ state, size = 80 }: AgentStatusProps) {
   // Preload all images on mount
   useEffect(() => {
     Object.values(IMAGE_MAP).forEach(src => {
@@ -49,7 +49,8 @@ export function NuggetStatus({ state, size = 80 }: NuggetStatusProps) {
         className={`relative rounded-full ${ANIMATION_MAP[state]}`}
         style={{ width: size, height: size }}
       >
-        {(Object.keys(IMAGE_MAP) as NuggetState[]).map(s => (
+        {/* Render all images, crossfade via opacity */}
+        {(Object.keys(IMAGE_MAP) as AgentState[]).map(s => (
           <Image
             key={s}
             src={IMAGE_MAP[s]}
@@ -60,10 +61,11 @@ export function NuggetStatus({ state, size = 80 }: NuggetStatusProps) {
               state === s ? 'opacity-100' : 'opacity-0'
             }`}
             priority={s === 'idle'}
+            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
           />
         ))}
       </div>
-      <span className="text-[11px] text-zinc-500 font-medium tracking-wide">
+      <span className="text-[11px] text-text-muted font-medium tracking-wide">
         {LABEL_MAP[state]}
       </span>
     </div>

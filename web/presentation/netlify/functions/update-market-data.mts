@@ -8,18 +8,21 @@ const WEATHER_CODES: Record<number, string> = {
   95: 'Thunderstorm', 96: 'Thunderstorm with slight hail', 99: 'Thunderstorm with heavy hail'
 };
 
+import config from '../../config.json'
+
 async function fetchWeather(): Promise<Record<string, any> | null> {
+  const { latitude, longitude, name } = config.market_data.weather_location;
+  if (!latitude || !longitude) return null; // not configured — skip weather
   try {
-    // Mati City, Davao Oriental — the mine site
     const res = await fetch(
-      'https://api.open-meteo.com/v1/forecast?latitude=6.9553&longitude=126.2172&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=Asia/Manila&forecast_days=3'
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code&timezone=auto&forecast_days=3`
     );
     const data = await res.json();
     const current = data.current;
     const daily = data.daily;
 
     return {
-      location: 'Mati City, Davao Oriental',
+      location: name || `${latitude},${longitude}`,
       current: {
         temperature_c: current.temperature_2m,
         humidity_pct: current.relative_humidity_2m,

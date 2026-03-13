@@ -1,12 +1,22 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== 'production'
+
 const nextConfig = {
-  output: 'export',
+  ...(isDev ? {} : { output: 'export' }),
   images: {
     unoptimized: true,
   },
   trailingSlash: true,
-  // Exclude dev-only API routes from static export build
-  excludeDefaultMomentLocales: true,
+  ...(isDev ? {
+    async rewrites() {
+      return [
+        {
+          source: '/api/:path*',
+          destination: 'http://localhost:8787/api/:path*',
+        },
+      ]
+    },
+  } : {}),
 }
 
 export default nextConfig

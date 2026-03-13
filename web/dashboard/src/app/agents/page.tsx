@@ -8,7 +8,7 @@ import type { Objection } from '@/lib/types'
 
 const AGENTS = [
   { name: 'Lead Agent', emoji: '🎯', role: 'Coordinator', description: 'Orchestrates all agent activities, manages rounds, synthesizes cross-pollination insights' },
-  { name: 'Profiler', emoji: '🔍', role: 'Target Intelligence', description: 'Deep analysis of Sabina Aboitiz and Aboitiz Construction' },
+  { name: 'Profiler', emoji: '🔍', role: 'Target Intelligence', description: 'Deep analysis of the target decision-makers and their organization' },
   { name: 'Translator', emoji: '🌐', role: 'Cultural Bridge', description: 'Philippine business culture, communication protocols, relationship dynamics' },
   { name: 'Scout', emoji: '🏕️', role: 'Competitive Intelligence', description: 'Market landscape, regulatory environment, competitive positioning' },
   { name: 'Red Team', emoji: '👹', role: 'Adversarial Review', description: 'Identify weaknesses, anticipate objections, stress-test claims' },

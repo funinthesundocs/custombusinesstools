@@ -1,8 +1,10 @@
+import { config } from 'dotenv';
+config();
 import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
-  'https://jnvthnhwvnqcuccredym.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImpudnRobmh3dm5xY3VjY3JlZHltIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3Mjg3ODgzMCwiZXhwIjoyMDg4NDU0ODMwfQ.5Xvc8MDFLh0drUj_Uj_ibdxnQSEz3YiBQ_q7qkt_bng'
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 )
 
 // Create table using raw SQL via Supabase's pg_net or direct insert

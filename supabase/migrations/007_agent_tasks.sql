@@ -2,7 +2,7 @@ CREATE TABLE agent_tasks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   deal_id UUID,
   conversation_id UUID,
-  source TEXT NOT NULL CHECK (source IN ('nugget', 'dashboard', 'system')),
+  source TEXT NOT NULL CHECK (source IN ('agent', 'dashboard', 'system')),
   task_type TEXT NOT NULL CHECK (task_type IN ('knowledge_gap', 'content_update', 'document_request', 'escalation', 'feedback')),
   payload JSONB NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'complete', 'failed')),

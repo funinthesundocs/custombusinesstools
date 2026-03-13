@@ -10,7 +10,7 @@ interface TaskPayload {
   priority: string;
 }
 
-async function processKnowledgeGap(payload: Record<string, any>): Promise<{ success: boolean; content?: string; error?: string }> {
+export async function processKnowledgeGap(payload: Record<string, any>): Promise<{ success: boolean; content?: string; error?: string }> {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -32,18 +32,17 @@ If you cannot find a reliable answer, respond with exactly: "INSUFFICIENT_DATA" 
       return { success: false, error: textContent };
     }
 
-    // Embed the new knowledge via Gemini
+    // Embed the new knowledge via Gemini Embedding 2 (3072 dims — matches Pinecone index)
     const geminiApiKey = process.env.GEMINI_API_KEY;
     if (!geminiApiKey) return { success: false, error: 'No Gemini API key for embedding' };
 
     const embeddingRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiApiKey}`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content: { parts: [{ text: textContent }] },
-          outputDimensionality: 1536
         })
       }
     );
@@ -52,43 +51,88 @@ If you cannot find a reliable answer, respond with exactly: "INSUFFICIENT_DATA" 
 
     if (!embedding) return { success: false, error: 'Embedding generation failed' };
 
-    // Write to intelligence_documents with pending_review status
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    // Write to Pinecone via REST API
+    const pineconeApiKey = process.env.PINECONE_API_KEY;
+    const pineconeHost = process.env.PINECONE_INDEX_HOST;
 
-    const docRes = await fetch(`${supabaseUrl}/rest/v1/intelligence_documents`, {
+    if (!pineconeApiKey || !pineconeHost) {
+      return { success: false, error: 'Pinecone credentials not configured' };
+    }
+
+    const vectorId = `${config.supabase.project_id}::auto-research::${Date.now()}`;
+    const pineconeRes = await fetch(`https://${pineconeHost}/vectors/upsert`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseKey!,
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Prefer': 'return=minimal'
+        'Api-Key': pineconeApiKey,
       },
       body: JSON.stringify({
-        deal_id: config.supabase.deal_id,
-        content: textContent,
-        embedding: JSON.stringify(embedding),
-        document_type: 'auto-research',
-        track: 'auto-research',
-        category: 'knowledge-gap-fill',
-        processing_status: 'verified',
-        processing_notes: JSON.stringify({
-          source_question: payload.question,
-          generated_at: new Date().toISOString(),
-          similarity_score_trigger: payload.top_similarity_score
-        })
+        namespace: config.supabase.project_id,
+        vectors: [{
+          id: vectorId,
+          values: embedding,
+          metadata: {
+            modality: 'text',
+            content: textContent.slice(0, 1000),
+            source_file: 'auto-research',
+            deal_id: config.supabase.project_id,
+            track: 'auto-research',
+            source_type: 'knowledge-gap-fill',
+            created_at: new Date().toISOString(),
+            source_question: payload.question,
+            similarity_score_trigger: payload.top_similarity_score,
+          }
+        }]
       })
     });
 
-    if (!docRes.ok) {
-      const docErr = await docRes.text();
-      return { success: false, error: `intelligence_documents write failed: ${docRes.status} ${docErr}` };
+    if (!pineconeRes.ok) {
+      const pineconeErr = await pineconeRes.text();
+      return { success: false, error: `Pinecone upsert failed: ${pineconeRes.status} ${pineconeErr}` };
     }
 
     return { success: true, content: textContent };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
+}
+
+export async function processTaskInline(taskId: string, taskType: string, payload: Record<string, any>) {
+  let result: Record<string, any>;
+
+  switch (taskType) {
+    case 'knowledge_gap':
+    case 'content_update':
+      result = await processKnowledgeGap(payload);
+      break;
+    case 'feedback':
+      result = { success: true };
+      break;
+    default:
+      result = { success: false, error: `Unknown task type: ${taskType}` };
+  }
+
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (supabaseUrl && supabaseKey) {
+    await fetch(`${supabaseUrl}/rest/v1/agent_tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        status: result.success ? 'complete' : 'failed',
+        result: result,
+        completed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    }).catch(() => {});
+  }
+
+  return result;
 }
 
 async function processFeedback(payload: Record<string, any>): Promise<{ success: boolean }> {

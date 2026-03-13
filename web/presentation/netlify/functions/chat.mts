@@ -85,7 +85,7 @@ async function writeAgentTask(task: {
         payload: task.payload,
         priority: task.priority || 'normal',
         metadata: task.metadata || {},
-        deal_id: config.supabase.deal_id
+        deal_id: config.supabase.project_id
       })
     });
   } catch (e) {
@@ -104,8 +104,9 @@ export default async (req: Request) => {
 
     const marketDataBlock = await getMarketData();
 
-    // RAG: embed question + retrieve context
+    // RAG: embed question with Gemini Embedding 2 + retrieve from Pinecone
     let context = ''
+    let mediaResults: Array<{ modality: string; url: string; caption: string; score: number }> = []
     let lowConfidenceRAG = false
     let topScore = 0
     let ragChunksCount = 0
@@ -113,43 +114,56 @@ export default async (req: Request) => {
 
     try {
       const geminiApiKey = process.env.GEMINI_API_KEY
-      if (geminiApiKey) {
+      const pineconeApiKey = process.env.PINECONE_API_KEY
+      const pineconeHost = process.env.PINECONE_INDEX_HOST
+
+      if (geminiApiKey && pineconeApiKey && pineconeHost) {
+        // Embed query with Gemini Embedding 2 (3072 dims — matches index)
         const embeddingRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent?key=${geminiApiKey}`,
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiApiKey}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              content: { parts: [{ text: question }] },
-              outputDimensionality: 1536,
+              content: { parts: [{ text: userMessage }] },
             }),
           }
         )
         const embeddingData = await embeddingRes.json()
 
         if (embeddingData?.embedding?.values) {
-          const supabase = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          // Query Pinecone via REST API (no SDK needed in edge function)
+          const pineconeRes = await fetch(
+            `https://${pineconeHost}/query`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Api-Key': pineconeApiKey,
+              },
+              body: JSON.stringify({
+                namespace: config.supabase.project_id,
+                vector: embeddingData.embedding.values,
+                topK: 15,
+                includeMetadata: true,
+              }),
+            }
           )
-          const { data: chunks } = await supabase.rpc('match_intelligence', {
-            query_embedding: embeddingData.embedding.values,
-            match_threshold: 0.3,
-            match_count: 15,
-          })
+          const pineconeData = await pineconeRes.json()
+          const matches = pineconeData.matches || []
 
           const now = Date.now()
           const TTL_MS = 24 * 60 * 60 * 1000
-          const freshChunks = (chunks || []).filter((c: any) => {
-            if (c.track === 'auto-research') {
-              const createdAt = new Date(c.created_at || 0).getTime()
+          const freshMatches = matches.filter((m: any) => {
+            if (m.metadata?.track === 'auto-research') {
+              const createdAt = new Date(m.metadata?.created_at || 0).getTime()
               return (now - createdAt) < TTL_MS
             }
             return true
           })
 
-          ragChunksCount = freshChunks.length
-          topScore = freshChunks[0]?.similarity || 0
+          ragChunksCount = freshMatches.length
+          topScore = freshMatches[0]?.score || 0
           lowConfidenceRAG = ragChunksCount === 0 || topScore < 0.7
 
           // Don't trigger research for questions answerable by injected market data
@@ -162,9 +176,26 @@ export default async (req: Request) => {
             }
           }
 
-          context = freshChunks
-            .map((c: any) => `[${c.track}/${c.category} | similarity: ${c.similarity?.toFixed(3)}]\n${c.content}`)
+          // Split by modality: text → context, images/video → mediaResults
+          const textMatches = freshMatches.filter((m: any) =>
+            !m.metadata?.modality || m.metadata.modality === 'text'
+          )
+          const mediaMatches = freshMatches.filter((m: any) =>
+            m.metadata?.modality === 'image' || m.metadata?.modality === 'video'
+          )
+
+          context = textMatches
+            .map((m: any) => `[${m.metadata?.track || 'source'} | score: ${m.score?.toFixed(3)}]\n${m.metadata?.content || ''}`)
             .join('\n\n---\n\n')
+
+          mediaResults = mediaMatches
+            .filter((m: any) => m.metadata?.storage_url)
+            .map((m: any) => ({
+              modality: m.metadata.modality,
+              url: m.metadata.storage_url,
+              caption: m.metadata.content || '',
+              score: m.score,
+            }))
         }
       }
     } catch {
@@ -202,7 +233,7 @@ export default async (req: Request) => {
             status: 'pending',
             priority: 'urgent',
             metadata: { research_fired: true },
-            deal_id: config.supabase.deal_id
+            deal_id: config.supabase.project_id
           })
         }).then(() => {
           if (processUrl && taskSecret) {
@@ -290,6 +321,12 @@ export default async (req: Request) => {
           const { done, value } = await reader.read()
 
           if (done) {
+            // Emit media results if any were retrieved
+            if (mediaResults.length > 0) {
+              const mediaSignal = `data: ${JSON.stringify({ type: 'media_results', results: mediaResults })}\n\n`;
+              controller.enqueue(new TextEncoder().encode(mediaSignal));
+            }
+
             // Emit research_pending signal before closing
             if (lowConfidenceRAG) {
               const signal = `data: ${JSON.stringify({ type: 'research_pending', question: userMessage })}\n\n`;
@@ -322,7 +359,7 @@ export default async (req: Request) => {
                       status: 'pending',
                       priority: 'urgent',
                       metadata: { research_fired: true },
-                      deal_id: config.supabase.deal_id
+                      deal_id: config.supabase.project_id
                     })
                   });
                   await fetch(processUrl, {

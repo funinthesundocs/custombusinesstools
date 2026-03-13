@@ -45,7 +45,7 @@ export const volumeEstimates = {
 // ---------------------------------------------------------------------------
 // Partnership Alignment (Section 3)
 // ---------------------------------------------------------------------------
-export const alignmentGMC = {
+export const alignmentData = {
     title: `What ${config.company.short_name} Brings`,
     items: [
         { label: '[Capability 1]', detail: '[Description]' },

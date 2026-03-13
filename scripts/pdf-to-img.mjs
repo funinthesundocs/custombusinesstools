@@ -1,20 +1,37 @@
 import { chromium } from 'playwright';
 import { readFileSync } from 'fs';
+import path from 'path';
+
+/**
+ * PDF to Image converter — KOP Template
+ *
+ * Configure the pdfs array below for each deployment.
+ * Paths are relative to the project root (C:/Antigravity/Custombusinesstools/).
+ *
+ * REPLACE the items in the pdfs array with your actual source documents.
+ * Output paths are relative to the presentation site's public/ directory.
+ *
+ * Example:
+ * {
+ *   src: 'intelligence/raw/source/technical/assay-report.pdf',
+ *   out: 'web/presentation/public/images/evidence/assay-report.png',
+ * }
+ */
+
+const projectRoot = path.resolve(new URL(import.meta.url).pathname, '../../');
 
 const pdfs = [
-  {
-    src: 'C:/Antigravity/TQM/intelligence/raw/source/technical/Previous sample test by POSCO.pdf',
-    out: 'C:/Antigravity/TQM/web/presentation/public/images/evidence/posco-assay.png',
-  },
-  {
-    src: 'C:/Antigravity/TQM/intelligence/raw/source/technical/Assay3CamScanner 12-02-2026 14.33.pdf',
-    out: 'C:/Antigravity/TQM/web/presentation/public/images/evidence/davao-analytical-assay.png',
-  },
-  {
-    src: 'C:/Antigravity/TQM/intelligence/raw/source/technical/GMC Mati Mine Site Maps (2020_11_15 02_53_31 UTC).pdf',
-    out: 'C:/Antigravity/TQM/web/presentation/public/images/evidence/mati-mine-site-map.png',
-  },
+  // REPLACE — add your PDF source paths and output image paths here
+  // {
+  //   src: path.join(projectRoot, 'intelligence/raw/source/technical/REPLACE.pdf'),
+  //   out: path.join(projectRoot, 'web/presentation/public/images/evidence/REPLACE.png'),
+  // },
 ];
+
+if (pdfs.length === 0) {
+  console.log('No PDFs configured. Edit scripts/pdf-to-img.mjs to add source documents.');
+  process.exit(0);
+}
 
 const browser = await chromium.launch();
 
@@ -25,7 +42,6 @@ for (const { src, out } of pdfs) {
   const pdfBytes = readFileSync(src);
   const b64 = pdfBytes.toString('base64');
 
-  // Use PDF.js via canvas to render page 1 cleanly
   await page.setContent(`
     <!DOCTYPE html>
     <html>

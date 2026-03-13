@@ -6,8 +6,9 @@ dist/
 build/
 *.log
 .DS_Store
-intelligence/raw/
-production/outputs/
+
+# Client-specific archives — not part of the template
+_archive/
 
 # Local Netlify folder
 .netlify

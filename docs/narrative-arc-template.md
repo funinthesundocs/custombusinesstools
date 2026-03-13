@@ -1,4 +1,4 @@
-# Narrative Arc — GMC × Aboitiz Presentation
+# Narrative Arc — [SOURCE_ENTITY] × [TARGET] Presentation
 
 ## The Story Structure
 
@@ -13,27 +13,27 @@ from curiosity → excitement → confidence → action.
 **Source docs:** 08-credibility-momentum.md, 06-target-analysis.md (for framing)
 
 ## Section 2: The Opportunity (2-3 slides)
-**Goal:** What's in the ground, what it's worth, why now. Create excitement.
+**Goal:** What's in the ground / on offer, what it's worth, why now. Create excitement.
 **Lead with:** The single most compelling data point.
 **Tone:** Exciting but not overselling. Let the data speak.
 **Source docs:** 01-opportunity-brief.md, 09-technical-assets.md
 
 ## Section 3: The Alignment (2 slides)
-**Goal:** Why Aboitiz specifically. Make the partnership feel inevitable.
-**Key move:** Reference THEIR stated strategy and show how GMC delivers on it.
+**Goal:** Why [TARGET] specifically. Make the partnership feel inevitable.
+**Key move:** Reference THEIR stated strategy and show how [SOURCE_ENTITY] delivers on it.
 **Signal:** This is not a generic pitch. This was designed for you.
 **Source docs:** 02-strategic-alignment.md, 06-target-analysis.md
 
 ## Section 4: The Proof (3-4 slides)
 **Goal:** Evidence that this is real. Build confidence.
-**Include:** Geological data visualized, assay highlights, financial projections,
+**Include:** [Domain] data visualized, key metrics, financial projections,
 third-party validations, LOI/MOU momentum from other parties.
 **Source docs:** 09-technical-assets.md, 08-credibility-momentum.md, 01-opportunity-brief.md
 
 ## Section 5: The Plan (2-3 slides)
 **Goal:** How it works. Make it concrete and actionable.
 **Include:** Partnership structure, timeline, milestones, roles, governance.
-**Key:** Sabina should see exactly what happens next. Clarity = confidence.
+**Key:** [DECISION_MAKER] should see exactly what happens next. Clarity = confidence.
 **Source docs:** 03-deal-framework.md
 
 ## Section 6: The Protection (2 slides)
@@ -45,7 +45,7 @@ third-party validations, LOI/MOU momentum from other parties.
 ## Section 7: The Vision (1-2 slides)
 **Goal:** Where this goes long-term. The bigger picture beyond profit.
 **Include:** Community impact, regional development, environmental stewardship, legacy.
-**If Sabina has humanitarian leanings:** This is the slide that speaks to her as a person.
+**If [DECISION_MAKER] has humanitarian leanings:** This is the slide that speaks to them as a person.
 **Source docs:** 05-vision-and-impact.md
 
 ## Section 8: The Ask (1 slide)

@@ -78,7 +78,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <p className="text-xs text-zinc-500 mb-1">Deal ID</p>
-            <p className="text-sm text-zinc-200 font-mono text-xs">{config.supabase.deal_id}</p>
+            <p className="text-sm text-zinc-200 font-mono text-xs">{config.supabase.project_id}</p>
           </div>
         </div>
       </div>

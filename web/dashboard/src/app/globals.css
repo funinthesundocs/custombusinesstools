@@ -33,19 +33,19 @@ body {
   0%, 100% { box-shadow: 0 0 0 0 rgba(45, 138, 78, 0.6); }
   50% { box-shadow: 0 0 0 12px rgba(45, 138, 78, 0); }
 }
-.nugget-listening { animation: listening-pulse 1.5s ease-in-out infinite; border-radius: 50%; }
+.agent-listening { animation: listening-pulse 1.5s ease-in-out infinite; border-radius: 50%; }
 
 @keyframes thinking-glow {
   0%, 100% { box-shadow: 0 0 15px 5px rgba(197, 146, 46, 0.3); }
   50% { box-shadow: 0 0 25px 10px rgba(197, 146, 46, 0.5); }
 }
-.nugget-thinking { animation: thinking-glow 2s ease-in-out infinite; border-radius: 50%; }
+.agent-thinking { animation: thinking-glow 2s ease-in-out infinite; border-radius: 50%; }
 
 @keyframes talking-pulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.6); }
   50% { box-shadow: 0 0 0 10px rgba(34, 211, 238, 0); }
 }
-.nugget-talking { animation: talking-pulse 0.8s ease-in-out infinite; border-radius: 50%; }
+.agent-talking { animation: talking-pulse 0.8s ease-in-out infinite; border-radius: 50%; }
 
 /* Agent pulse animation */
 @keyframes pulse-border {
