@@ -33,6 +33,14 @@
 
 ---
 
+## Category: Tooling
+
+| Pearl | Notes | Uses |
+|-------|-------|------|
+| `Grep content does not satisfy Edit's read requirement` | Even if you have the exact line from a Grep result, the Edit tool will reject the call with "File has not been read yet." Always call Read explicitly on every file before any Edit, even in bulk rename operations. | 1 |
+
+---
+
 ## Category: Knowledge Ingestion
 
 | Pearl | Notes | Uses |
