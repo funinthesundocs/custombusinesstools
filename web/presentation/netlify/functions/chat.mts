@@ -257,11 +257,19 @@ export default async (req: Request) => {
       ? `You are ${(config as any).agent?.name || 'an AI advisor'} for ${(config as any).company?.name || 'the company'}. You just searched the web and the results are in your knowledge base below. Answer the user's question directly using that research. Be specific and cite what you found.${voice ? ' Keep under 60 words — spoken aloud.' : ' Keep under 200 words.'}${context ? `\n\nKNOWLEDGE BASE:\n${context}` : '\n\nNo specific research data was found.'}`
       : systemPrompt
 
+    // Anthropic requires messages to end with a user turn.
+    // Follow-up calls skip adding the user message on the client side,
+    // so we add it here if the last message is from the assistant.
+    let anthropicMessages = messages
+    if (question && messages?.[messages.length - 1]?.role === 'assistant') {
+      anthropicMessages = [...messages, { role: 'user', content: question }]
+    }
+
     const anthropicBody = JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: voice ? 150 : 400,
       system: effectiveSystemPrompt,
-      messages: messages,
+      messages: anthropicMessages,
       stream: true,
     })
     const anthropicHeaders = {
