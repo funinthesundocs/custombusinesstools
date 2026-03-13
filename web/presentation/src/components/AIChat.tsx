@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, FormEvent } from 'react'
 import Image from 'next/image'
 import { Send, User, Mic, Volume2, MessageCircle, WifiOff, X } from 'lucide-react'
-import { NuggetStatus, type NuggetState } from './NuggetStatus'
+import { AgentStatus, type AgentState } from './AgentStatus'
 import { supabase } from '@/lib/supabase'
 import config from '@/lib/siteConfig'
 
@@ -202,10 +202,6 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
   const [isSpeaking, setIsSpeaking] = useState(false)
   const [historyLoaded, setHistoryLoaded] = useState(false)
   const [online, setOnline] = useState(true)
-  const [researchPending, setResearchPending] = useState(false)
-  const [researchLoading, setResearchLoading] = useState(false)
-  const researchAbortRef = useRef(false)
-  const isAutoFollowUp = useRef(false)
   const [deviceId] = useState(() => {
     if (typeof window === 'undefined') return ''
     let id = localStorage.getItem('rag_device_id')
@@ -358,10 +354,6 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
   const sendMessage = useCallback(async (text: string, isVoice = false) => {
     if (!text.trim() || isStreaming) return
 
-    researchAbortRef.current = true
-    setResearchPending(false)
-    setResearchLoading(false)
-
     const userMessage: Message = { role: 'user', content: text.trim() }
     const updatedMessages = [...messages, userMessage]
     setMessages(updatedMessages)
@@ -370,8 +362,9 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
 
     const saved = await saveMessage('user', text.trim())
     if (saved) {
-      userMessage.id = saved.id
-      userMessage.created_at = saved.created_at
+      const last = updatedMessages[updatedMessages.length - 1]
+      last.id = saved.id
+      last.created_at = saved.created_at
     }
 
     if (audioQueueRef.current) {
@@ -394,6 +387,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
     try {
       const recentHistory = updatedMessages.slice(-10).map(m => ({ role: m.role, content: m.content }))
 
+      console.log('sendMessage: fetch to /api/chat started')
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -411,6 +405,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
 
       const reader = res.body?.getReader()
       if (!reader) throw new Error('No response stream')
+      console.log('sendMessage: SSE reader started')
 
       const decoder = new TextDecoder()
       let assistantContent = ''
@@ -430,125 +425,6 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
             if (data === '[DONE]') continue
             try {
               const parsed = JSON.parse(data)
-              if (parsed.type === 'research_pending' && !isAutoFollowUp.current) {
-                const pendingQuestion = parsed.question;
-                const currentMessages = messages.slice(-6);
-                setResearchPending(true);
-                researchAbortRef.current = false;
-
-                const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-                const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-                if (supabaseUrl && anonKey) {
-                  (async () => {
-                    for (let i = 0; i < 10; i++) {
-                      await new Promise(r => setTimeout(r, 5000));
-                      if (researchAbortRef.current) break;
-
-                      try {
-                        const res = await fetch(
-                          `${supabaseUrl}/rest/v1/agent_tasks?task_type=eq.knowledge_gap&status=eq.complete&order=created_at.desc&limit=5`,
-                          { headers: { 'apikey': anonKey, 'Authorization': `Bearer ${anonKey}` } }
-                        );
-                        const tasks = await res.json();
-                        const recentCutoff = new Date(Date.now() - 60000).toISOString();
-                        const match = tasks.find((t: any) =>
-                          t.payload?.question?.toLowerCase().trim() === pendingQuestion.toLowerCase().trim() &&
-                          t.created_at > recentCutoff &&
-                          t.result?.success === true
-                        );
-
-                        if (match) {
-                          setResearchPending(false);
-                          if (researchAbortRef.current) return;
-
-                          setResearchLoading(true);
-                          isAutoFollowUp.current = true;
-
-                          try {
-                            const followUpRes = await fetch('/api/chat', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                messages: [{ role: 'user', content: pendingQuestion }],
-                                question: pendingQuestion,
-                                voice: false,
-                                isFollowUp: true
-                              })
-                            });
-
-                            let followUpContent = '';
-                            const freader = followUpRes.body?.getReader();
-                            const fdecoder = new TextDecoder();
-                            if (freader) {
-                              let fbuffer = '';
-                              while (true) {
-                                const { done, value } = await freader.read();
-                                if (done) break;
-                                fbuffer += fdecoder.decode(value, { stream: true });
-                                const flines = fbuffer.split('\n');
-                                fbuffer = flines.pop() || '';
-                                for (const fline of flines) {
-                                  if (fline.startsWith('data: ') || fline.startsWith('data:')) {
-                                    try {
-                                      const fp = JSON.parse(fline.slice(fline.indexOf(':') + 1).trim());
-                                      if (fp.type === 'content_block_delta' && fp.delta?.text) {
-                                        followUpContent += fp.delta.text;
-                                      }
-                                    } catch {}
-                                  }
-                                }
-                              }
-                            }
-
-                            if (followUpContent.length > 0) {
-                              const updatedMsg: Message = {
-                                role: 'assistant',
-                                content: followUpContent,
-                                sender_name: `${config.agent.name} (Updated)`,
-                                created_at: new Date().toISOString()
-                              };
-                              setMessages(prev => [...prev, updatedMsg]);
-
-                              // TTS for follow-up if voice is enabled
-                              if (voiceEnabledRef.current && audioQueueRef.current) {
-                                const sentences = extractSentences(followUpContent, 0);
-                                for (const sentence of sentences) {
-                                  audioQueueRef.current.enqueue(sentence);
-                                }
-                              }
-
-                              try {
-                                if (supabaseUrl && anonKey) {
-                                  await fetch(`${supabaseUrl}/rest/v1/external_agent_conversations`, {
-                                    method: 'POST',
-                                    headers: {
-                                      'Content-Type': 'application/json',
-                                      'apikey': anonKey,
-                                      'Authorization': `Bearer ${anonKey}`,
-                                      'Prefer': 'return=minimal'
-                                    },
-                                    body: JSON.stringify({
-                                      deal_id: config.supabase.deal_id,
-                                      role: 'assistant',
-                                      content: followUpContent,
-                                      sender_name: `${config.agent.name} (Updated)`
-                                    })
-                                  });
-                                }
-                              } catch {}
-                            }
-                          } catch {}
-                          setResearchLoading(false);
-                          isAutoFollowUp.current = false;
-                          return;
-                        }
-                      } catch {}
-                    }
-                    setResearchPending(false);
-                  })();
-                }
-              }
               if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
                 assistantContent += parsed.delta.text
                 setMessages(prev => {
@@ -592,6 +468,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
           console.log('TTS: stream complete, remaining sentences to play:', remaining.length)
           for (const sentence of remaining) audioQueue.enqueue(sentence)
         }
+
       }
     } catch (error: any) {
       setMessages(prev => {
@@ -606,7 +483,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
       setIsStreaming(false)
       inputRef.current?.focus()
     }
-  }, [messages, isStreaming, saveMessage])
+  }, [messages, isStreaming, saveMessage, voiceEnabledRef])
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
@@ -686,11 +563,11 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
     )
   }
 
-  // Derive Nugget visual state from existing variables
+  // Derive agent visual state from existing variables
   const lastMessage = messages[messages.length - 1]
   const isThinking = isStreaming && (!lastMessage || lastMessage.role !== 'assistant' || !lastMessage.content)
   const isTalking = (isStreaming && lastMessage?.role === 'assistant' && !!lastMessage.content) || isSpeaking
-  const nuggetState: NuggetState = isListening ? 'listening' : isThinking ? 'thinking' : isTalking ? 'talking' : 'idle'
+  const agentState: AgentState = isListening ? 'listening' : isThinking ? 'thinking' : isTalking ? 'talking' : 'idle'
 
   const containerClass = fullPage
     ? 'flex flex-col h-[calc(100dvh-72px)] pt-[72px]'
@@ -701,7 +578,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
       {/* Header */}
       <div className={`flex items-center gap-4 px-4 py-6 border-b ${fullPage ? 'border-border' : 'border-gray-100'}`}>
         <div className="flex-shrink-0 w-[134px] h-[134px] rounded-full overflow-hidden shadow-lg flex items-center justify-center">
-          <Image src={`${config.agent.avatar_path}hero-light.png`} alt={config.agent.name} width={112} height={112} className="w-[112px] h-[112px] object-cover flex-shrink-0" />
+          <Image src={`${config.agent.avatar_path}hero-light.png`} alt={config.agent.name} width={112} height={112} className="w-[112px] h-[112px] object-cover flex-shrink-0" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }} />
         </div>
         <div className="flex flex-col gap-0.5 min-w-0">
           <h2 className="text-base font-bold text-text-primary tracking-wide whitespace-nowrap">ASK {config.agent.name.toUpperCase()}</h2>
@@ -742,7 +619,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-5 px-2">
-            <NuggetStatus state={nuggetState} size={80} />
+            <AgentStatus state={agentState} size={80} />
             <div className="text-center">
               <p className="text-text-primary text-base font-medium">ASK {config.agent.name.toUpperCase()}</p>
               <p className="text-text-muted text-xs mt-1">{config.company.short_name} AI Advisor</p>
@@ -762,20 +639,21 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
         ) : (
           <>
             <div className="flex justify-center py-2 mb-2">
-              <NuggetStatus state={nuggetState} size={60} />
+              <AgentStatus state={agentState} size={60} />
             </div>
             {messages.map((msg, i) => {
               const isThinkingMsg = msg.role === 'assistant' && isStreaming && i === messages.length - 1 && !msg.content
               return (
             <div key={msg.id || i} className={`flex gap-2.5 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {msg.role === 'assistant' && (
-                <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden mt-0.5 ${isThinkingMsg ? 'nugget-thinking' : ''}`}>
+                <div className={`flex-shrink-0 w-9 h-9 rounded-full overflow-hidden mt-0.5 ${isThinkingMsg ? 'agent-thinking' : ''}`}>
                   <Image
                     src={isThinkingMsg ? `${config.agent.avatar_path}thinking.png` : `${config.agent.avatar_path}hero-light.png`}
                     alt={config.agent.name}
                     width={36}
                     height={36}
                     className="w-full h-full object-cover"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                   />
                 </div>
               )}
@@ -833,13 +711,6 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
         )}
       </div>
 
-      {/* Research indicator */}
-      {(researchPending || researchLoading) && (
-        <div className="flex items-center gap-2 px-4 py-2 text-xs italic animate-pulse" style={{ color: '#C5922E' }}>
-          <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: '#C5922E' }} />
-          {researchLoading ? 'Loading updated answer...' : 'Researching live data...'}
-        </div>
-      )}
 
       {/* Listening indicator */}
       {isListening && (
