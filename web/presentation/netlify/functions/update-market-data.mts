@@ -27,6 +27,8 @@ export default async (req: Request) => {
       baseCurrency: (config as any).dataFeeds?.baseCurrency || 'USD',
       cryptoAssets: (config as any).dataFeeds?.cryptoAssets || ['bitcoin', 'ethereum', 'solana'],
       earthquakeMinMagnitude: (config as any).dataFeeds?.earthquakeMinMagnitude || 4.0,
+      stockSymbols: (config as any).dataFeeds?.stockSymbols || [],
+      sportsLeagues: (config as any).dataFeeds?.sportsLeagues || ['nfl', 'nba'],
     }
 
     const feeds = await fetchAllFeeds(feedsConfig)

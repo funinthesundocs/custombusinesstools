@@ -10,17 +10,20 @@ interface TaskPayload {
   priority: string;
 }
 
-export async function processKnowledgeGap(payload: Record<string, any>): Promise<{ success: boolean; content?: string; error?: string }> {
+export async function processKnowledgeGap(
+  payload: Record<string, any>,
+  earlyComplete?: (result: { success: boolean; content?: string }) => Promise<void>
+): Promise<{ success: boolean; content?: string; error?: string }> {
   try {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1000,
+      max_tokens: 600,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       system: `You are a knowledge base researcher for ${config.company.name} (${config.company.short_name}). Your job is to research questions that the company's AI advisor could not answer from its existing knowledge base.
 
-Research the question thoroughly. Provide a factual, source-attributed answer suitable for inclusion in a RAG knowledge base. Keep your answer under 300 words. Write in a neutral, informative tone — not conversational.
+Research the question thoroughly. Provide a factual, source-attributed answer suitable for inclusion in a RAG knowledge base. Keep your answer under 200 words. Write in a neutral, informative tone — not conversational.
 
 If you cannot find a reliable answer, respond with exactly: "INSUFFICIENT_DATA" followed by a brief explanation of why.`,
       messages: [{ role: 'user', content: `Research this question and provide a factual answer: "${payload.question}"` }]
@@ -32,63 +35,58 @@ If you cannot find a reliable answer, respond with exactly: "INSUFFICIENT_DATA" 
       return { success: false, error: textContent };
     }
 
-    // Embed the new knowledge via Gemini Embedding 2 (3072 dims — matches Pinecone index)
-    const geminiApiKey = process.env.GEMINI_API_KEY;
-    if (!geminiApiKey) return { success: false, error: 'No Gemini API key for embedding' };
-
-    const embeddingRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiApiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: { parts: [{ text: textContent }] },
-        })
-      }
-    );
-    const embeddingData = await embeddingRes.json();
-    const embedding = embeddingData?.embedding?.values;
-
-    if (!embedding) return { success: false, error: 'Embedding generation failed' };
-
-    // Write to Pinecone via REST API
-    const pineconeApiKey = process.env.PINECONE_API_KEY;
-    const pineconeHost = process.env.PINECONE_INDEX_HOST;
-
-    if (!pineconeApiKey || !pineconeHost) {
-      return { success: false, error: 'Pinecone credentials not configured' };
+    // Mark the task complete NOW — before embedding/Pinecone which can timeout.
+    // The client follow-up only needs this signal. Embedding is background enrichment.
+    if (earlyComplete) {
+      await earlyComplete({ success: true, content: textContent });
     }
 
-    const vectorId = `${config.supabase.project_id}::auto-research::${Date.now()}`;
-    const pineconeRes = await fetch(`https://${pineconeHost}/vectors/upsert`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Api-Key': pineconeApiKey,
-      },
-      body: JSON.stringify({
-        namespace: config.supabase.project_id,
-        vectors: [{
-          id: vectorId,
-          values: embedding,
-          metadata: {
-            modality: 'text',
-            content: textContent.slice(0, 1000),
-            source_file: 'auto-research',
-            deal_id: config.supabase.project_id,
-            track: 'auto-research',
-            source_type: 'knowledge-gap-fill',
-            created_at: new Date().toISOString(),
-            source_question: payload.question,
-            similarity_score_trigger: payload.top_similarity_score,
-          }
-        }]
-      })
-    });
+    // Background: embed + upsert to Pinecone (best-effort, does not block client follow-up)
+    try {
+      const geminiApiKey = process.env.GEMINI_API_KEY;
+      const pineconeApiKey = process.env.PINECONE_API_KEY;
+      const pineconeHost = process.env.PINECONE_INDEX_HOST;
 
-    if (!pineconeRes.ok) {
-      const pineconeErr = await pineconeRes.text();
-      return { success: false, error: `Pinecone upsert failed: ${pineconeRes.status} ${pineconeErr}` };
+      if (geminiApiKey && pineconeApiKey && pineconeHost) {
+        const embeddingRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiApiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ content: { parts: [{ text: textContent }] } })
+          }
+        );
+        const embeddingData = await embeddingRes.json();
+        const embedding = embeddingData?.embedding?.values;
+
+        if (embedding) {
+          const vectorId = `${config.supabase.project_id}::auto-research::${Date.now()}`;
+          await fetch(`https://${pineconeHost}/vectors/upsert`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Api-Key': pineconeApiKey },
+            body: JSON.stringify({
+              namespace: config.supabase.project_id,
+              vectors: [{
+                id: vectorId,
+                values: embedding,
+                metadata: {
+                  modality: 'text',
+                  content: textContent.slice(0, 1000),
+                  source_file: 'auto-research',
+                  deal_id: config.supabase.project_id,
+                  track: 'auto-research',
+                  source_type: 'knowledge-gap-fill',
+                  created_at: new Date().toISOString(),
+                  source_question: payload.question,
+                  similarity_score_trigger: payload.top_similarity_score,
+                }
+              }]
+            })
+          });
+        }
+      }
+    } catch {
+      // Embedding failure is non-fatal — task already marked complete above
     }
 
     return { success: true, content: textContent };
@@ -161,12 +159,36 @@ export default async (req: Request) => {
     const task: TaskPayload = await req.json();
     let result: Record<string, any>;
 
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    // earlyComplete: patch Supabase to 'complete' immediately after research text
+    // arrives — before Gemini embedding + Pinecone which can cause timeout
+    const earlyComplete = async (earlyResult: { success: boolean; content?: string }) => {
+      if (!supabaseUrl || !supabaseKey) return;
+      await fetch(`${supabaseUrl}/rest/v1/agent_tasks?id=eq.${task.task_id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          status: 'complete',
+          result: earlyResult,
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+      }).catch(() => {});
+    };
+
     switch (task.task_type) {
       case 'knowledge_gap':
-        result = await processKnowledgeGap(task.payload);
+        result = await processKnowledgeGap(task.payload, earlyComplete);
         break;
       case 'content_update':
-        result = await processKnowledgeGap(task.payload); // Same research flow for now
+        result = await processKnowledgeGap(task.payload, earlyComplete);
         break;
       case 'feedback':
         result = await processFeedback(task.payload);
@@ -179,10 +201,7 @@ export default async (req: Request) => {
         result = { success: false, error: `Unknown task type: ${task.task_type}` };
     }
 
-    // Update the task status in Supabase
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
+    // Update the task status in Supabase (no-op if earlyComplete already ran)
     const patchUrl = `${supabaseUrl}/rest/v1/agent_tasks?id=eq.${task.task_id}`;
     const patchRes = await fetch(patchUrl, {
       method: 'PATCH',

@@ -78,6 +78,8 @@ export default function SettingsPage() {
   const [baseCurrency, setBaseCurrency] = useState('USD')
   const [cryptoAssets, setCryptoAssets] = useState('bitcoin,ethereum,solana')
   const [minEarthquakeMag, setMinEarthquakeMag] = useState(4.0)
+  const [stockSymbols, setStockSymbols] = useState('')
+  const [sportsLeagues, setSportsLeagues] = useState('nfl,nba')
   const [feedResults, setFeedResults] = useState<Record<string, FeedResult>>({})
   const [feedTesting, setFeedTesting] = useState<Record<string, boolean>>({})
 
@@ -90,7 +92,7 @@ export default function SettingsPage() {
     try {
       const res = await fetch('/api/admin/config')
       if (res.ok) {
-        const data = await res.json() as SiteConfig & { dataFeeds?: { defaultLocation?: string; baseCurrency?: string; cryptoAssets?: string[]; earthquakeMinMagnitude?: number } }
+        const data = await res.json() as SiteConfig & { dataFeeds?: { defaultLocation?: string; baseCurrency?: string; cryptoAssets?: string[]; earthquakeMinMagnitude?: number; stockSymbols?: string[]; sportsLeagues?: string[] } }
         setConfig(data)
         setEmbeddingModel(data.rag?.embeddingModel ?? '')
         setEmbeddingDimensions(data.rag?.embeddingDimensions ?? 3072)
@@ -100,6 +102,8 @@ export default function SettingsPage() {
           setBaseCurrency(data.dataFeeds.baseCurrency ?? 'USD')
           setCryptoAssets(data.dataFeeds.cryptoAssets?.join(',') ?? 'bitcoin,ethereum,solana')
           setMinEarthquakeMag(data.dataFeeds.earthquakeMinMagnitude ?? 4.0)
+          setStockSymbols(data.dataFeeds.stockSymbols?.join(',') ?? '')
+          setSportsLeagues(data.dataFeeds.sportsLeagues?.join(',') ?? 'nfl,nba')
         }
       }
     } catch { /* ignore */ }
@@ -122,6 +126,8 @@ export default function SettingsPage() {
       if (baseCurrency) params.set('base', baseCurrency)
       if (cryptoAssets) params.set('assets', cryptoAssets)
       if (feedKey === 'earthquakes') params.set('min_mag', String(minEarthquakeMag))
+      if (feedKey === 'stocks' && stockSymbols) params.set('symbols', stockSymbols)
+      if (feedKey === 'sports') params.set('leagues', sportsLeagues || 'nfl,nba')
       const res = await fetch(`/api/admin/data-feeds?${params}`)
       const data = await res.json() as FeedResult
       setFeedResults(prev => ({ ...prev, [feedKey]: data }))
@@ -129,7 +135,7 @@ export default function SettingsPage() {
       setFeedResults(prev => ({ ...prev, [feedKey]: { ok: false, error: String(e) } }))
     }
     setFeedTesting(prev => ({ ...prev, [feedKey]: false }))
-  }, [defaultLocation, baseCurrency, cryptoAssets, minEarthquakeMag])
+  }, [defaultLocation, baseCurrency, cryptoAssets, minEarthquakeMag, stockSymbols, sportsLeagues])
 
   const saveFeedConfig = useCallback(async () => {
     const res = await fetch('/api/admin/config', {
@@ -141,12 +147,14 @@ export default function SettingsPage() {
           baseCurrency,
           cryptoAssets: cryptoAssets.split(',').map(s => s.trim()).filter(Boolean),
           earthquakeMinMagnitude: minEarthquakeMag,
+          stockSymbols: stockSymbols.split(',').map(s => s.trim().toUpperCase()).filter(Boolean),
+          sportsLeagues: sportsLeagues.split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
         }
       })
     })
     if (res.ok) showToast('Feed config saved')
     else showToast('Error saving', false)
-  }, [defaultLocation, baseCurrency, cryptoAssets, minEarthquakeMag, showToast])
+  }, [defaultLocation, baseCurrency, cryptoAssets, minEarthquakeMag, stockSymbols, sportsLeagues, showToast])
 
   useEffect(() => {
     setCurrentColor(getStoredColor())
@@ -432,6 +440,26 @@ export default function SettingsPage() {
                   onChange={e => setMinEarthquakeMag(parseFloat(e.target.value))}
                 />
               </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Stock Symbols</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  placeholder="AAPL,TSLA,NVDA"
+                  value={stockSymbols}
+                  onChange={e => setStockSymbols(e.target.value.toUpperCase())}
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">Extra tickers beyond S&P/Nasdaq/Dow indices</p>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Sports Leagues</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  placeholder="nfl,nba,nhl,mlb"
+                  value={sportsLeagues}
+                  onChange={e => setSportsLeagues(e.target.value.toLowerCase())}
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">nfl · nba · nhl · mlb · mls</p>
+              </div>
             </div>
             <button
               onClick={saveFeedConfig}
@@ -444,16 +472,21 @@ export default function SettingsPage() {
           {/* Feed Cards */}
           <div className="grid grid-cols-2 gap-3">
             {[
-              { key: 'weather',        label: 'Weather',          source: 'Open-Meteo',        desc: 'Current conditions + 3-day forecast' },
-              { key: 'air_quality',    label: 'Air Quality',      source: 'Open-Meteo AQ',     desc: 'AQI, PM2.5, PM10, ozone' },
-              { key: 'forex',          label: 'Forex Rates',      source: 'ExchangeRate-API',  desc: '160+ currencies, daily update' },
-              { key: 'crypto',         label: 'Crypto Prices',    source: 'CoinGecko',         desc: 'Price + 24h change, ~30 req/min' },
-              { key: 'earthquakes',    label: 'Earthquakes',      source: 'USGS',              desc: 'Real-time global seismic activity' },
-              { key: 'natural_events', label: 'Natural Events',   source: 'NASA EONET',        desc: 'Active wildfires, hurricanes, floods' },
-              { key: 'recalls',        label: 'FDA Recalls',      source: 'OpenFDA',           desc: 'Recent food enforcement actions' },
-              { key: 'news',           label: 'Tech News',        source: 'HackerNews',        desc: 'Top 5 stories, real-time' },
-              { key: 'iss',            label: 'ISS Location',     source: 'Open Notify',       desc: 'International Space Station position' },
-              { key: 'sunrise',        label: 'Sunrise / Sunset', source: 'SunriseSunset.io',  desc: 'Sunrise, sunset, golden hour' },
+              { key: 'weather',        label: 'Weather',           source: 'Open-Meteo',        desc: 'Current conditions + 3-day forecast' },
+              { key: 'air_quality',    label: 'Air Quality',       source: 'Open-Meteo AQ',     desc: 'AQI, PM2.5, PM10, ozone' },
+              { key: 'forex',          label: 'Forex Rates',       source: 'ExchangeRate-API',  desc: '160+ currencies, daily update' },
+              { key: 'crypto',         label: 'Crypto Prices',     source: 'CoinGecko',         desc: 'Price + 24h change, ~30 req/min' },
+              { key: 'commodities',    label: 'Commodities',       source: 'Yahoo Finance',     desc: 'Gold, silver, oil, gas, copper — spot prices' },
+              { key: 'stocks',         label: 'Stock Markets',     source: 'Yahoo Finance',     desc: 'S&P 500, Nasdaq, Dow + configurable tickers' },
+              { key: 'earthquakes',    label: 'Earthquakes',       source: 'USGS',              desc: 'Real-time global seismic activity' },
+              { key: 'natural_events', label: 'Natural Events',    source: 'NASA EONET',        desc: 'Active wildfires, hurricanes, floods' },
+              { key: 'recalls',        label: 'FDA Recalls',       source: 'OpenFDA',           desc: 'Recent food enforcement actions' },
+              { key: 'news',           label: 'Tech News',         source: 'HackerNews',        desc: 'Top 5 stories, real-time' },
+              { key: 'iss',            label: 'ISS Location',      source: 'wheretheiss.at',    desc: 'International Space Station position' },
+              { key: 'sunrise',        label: 'Sunrise / Sunset',  source: 'SunriseSunset.io',  desc: 'Sunrise, sunset, golden hour' },
+              { key: 'moon_phase',     label: 'Moon Phase',        source: 'Math (no API)',     desc: 'Current phase + illumination %' },
+              { key: 'spacex',         label: 'Space Launches',    source: 'Space Devs LL2',    desc: 'Next upcoming + last completed launch (all agencies)' },
+              { key: 'sports',         label: 'Sports Scores',     source: 'ESPN (unofficial)', desc: 'Live scores + schedules for configured leagues' },
             ].map(feed => {
               const res = feedResults[feed.key]
               const testing = feedTesting[feed.key]

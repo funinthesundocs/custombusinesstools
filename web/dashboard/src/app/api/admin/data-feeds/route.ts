@@ -4,12 +4,17 @@ import {
   fetchAirQuality,
   fetchForex,
   fetchCrypto,
+  fetchCommodities,
+  fetchStocks,
   fetchEarthquakes,
   fetchNaturalEvents,
   fetchRecalls,
   fetchNews,
   fetchIss,
   fetchSunrise,
+  fetchMoonPhase,
+  fetchSpaceX,
+  fetchSports,
   geocodeLocation,
 } from '../../../../../../../config/live-data'
 
@@ -20,12 +25,17 @@ const FEED_MAP: Record<string, (params: Record<string, string>) => Promise<strin
   air_quality:    p => fetchAirQuality(p.location || ''),
   forex:          p => fetchForex(p.base || 'USD'),
   crypto:         p => fetchCrypto(p.assets ? p.assets.split(',') : undefined),
+  commodities:    () => fetchCommodities(),
+  stocks:         p => fetchStocks(p.symbols ? p.symbols.split(',') : []),
   earthquakes:    p => fetchEarthquakes(p.min_mag ? parseFloat(p.min_mag) : undefined),
   natural_events: () => fetchNaturalEvents(),
   recalls:        () => fetchRecalls(),
   news:           () => fetchNews(),
   iss:            () => fetchIss(),
   sunrise:        p => fetchSunrise(p.location || ''),
+  moon_phase:     () => Promise.resolve(fetchMoonPhase()),
+  spacex:         () => fetchSpaceX(),
+  sports:         p => fetchSports(p.leagues ? p.leagues.split(',') : undefined),
 }
 
 export async function GET(request: NextRequest) {

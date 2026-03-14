@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import config from '../../config.json'
 import { buildSystemPrompt } from '../../../../config/system-prompt-template'
-import { selectFeedsForQuestion } from '../../../../config/live-data'
+import { selectFeedsForQuestion, fetchWeather, fetchAirQuality, fetchSunrise } from '../../../../config/live-data'
 
 let cachedLiveData: { feeds: Record<string, string>; fetchedAt: number } | null = null
 const LIVE_DATA_TTL_MS = 10 * 60 * 1000 // 10 minutes
@@ -74,7 +74,44 @@ export default async (req: Request) => {
 
     // Establish user message first so live data can keyword-match against it
     const userMessage = question || messages?.[messages.length - 1]?.content || ''
-    const marketDataBlock = await getLiveDataBlock(userMessage)
+
+    // Include the last assistant message for context — so a reply like "Honolulu"
+    // inherits weather intent from the prior turn that asked "Which city?"
+    const lastAssistantMsg = messages?.slice().reverse()
+      .find((m: any) => m.role === 'assistant')?.content || ''
+    const matchingContext = userMessage + (lastAssistantMsg ? ' ' + lastAssistantMsg.slice(0, 300) : '')
+    let marketDataBlock = await getLiveDataBlock(matchingContext)
+
+    // On-demand location fetch: weather/air quality/sunrise require a user-supplied location.
+    // The Supabase cache has no location data unless defaultLocation is configured.
+    // Detect weather intent in context, extract location from userMessage, fetch live.
+    const WEATHER_INTENT = /weather|temperature|temp|rain|forecast|hot|cold|humid|wind|celsius|fahrenheit|snow|sunrise|sunset|air quality|aqi/i
+    const LOCATION_CONTEXT = /weather|city|location|temperature|forecast|air quality/i
+    if (WEATHER_INTENT.test(matchingContext) || LOCATION_CONTEXT.test(lastAssistantMsg)) {
+      // Extract location: prefer userMessage if short and looks like a place name,
+      // otherwise scan full context for a quoted or capitalized location
+      const trimmed = userMessage.trim()
+      const looksLikeLocation = trimmed.length > 0 && trimmed.length < 60 &&
+        !trimmed.includes('?') && /[A-Z]/.test(trimmed) &&
+        !/\b(what|how|when|where|is|are|the|can|does|do|tell|give)\b/i.test(trimmed)
+
+      const location = looksLikeLocation ? trimmed : null
+
+      if (location) {
+        const [liveWeather, liveAir, liveSunrise] = await Promise.allSettled([
+          fetchWeather(location),
+          fetchAirQuality(location),
+          fetchSunrise(location),
+        ])
+        const live = [liveWeather, liveAir, liveSunrise]
+          .filter(r => r.status === 'fulfilled' && r.value)
+          .map(r => (r as PromiseFulfilledResult<string>).value)
+          .join('\n')
+        if (live) {
+          marketDataBlock = live + (marketDataBlock ? '\n' + marketDataBlock : '')
+        }
+      }
+    }
 
     // RAG: embed question with Gemini Embedding 2 + retrieve from Pinecone
     let context = ''

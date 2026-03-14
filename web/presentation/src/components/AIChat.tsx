@@ -339,21 +339,25 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
 
   const saveMessage = useCallback(async (role: 'user' | 'assistant', content: string) => {
     try {
+      // Pre-register the ID before the insert so the Supabase Realtime event
+      // (which can fire before the HTTP response returns) is deduped correctly.
+      const id = crypto.randomUUID()
+      messageIdsRef.current.add(id)
+
       const { data } = await supabase
         .from('external_agent_conversations')
-        .insert({ role, content, sender_name: 'Visitor', device_id: deviceId })
+        .insert({ id, role, content, sender_name: 'Visitor', device_id: deviceId })
         .select('id, created_at')
         .single()
 
       if (data) {
-        messageIdsRef.current.add(data.id)
         return { id: data.id, created_at: data.created_at }
       }
     } catch {
       // Offline — message not persisted
     }
     return null
-  }, [])
+  }, [deviceId])
 
   const sendMessage = useCallback(async (text: string, isVoice = false) => {
     if (!text.trim() || isStreaming) return

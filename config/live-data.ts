@@ -295,7 +295,7 @@ export async function fetchIss(): Promise<string> {
     const ns = d.latitude >= 0 ? 'N' : 'S'
     const ew = d.longitude >= 0 ? 'E' : 'W'
     const vis = d.visibility === 'daylight' ? 'in daylight' : 'in eclipse'
-    return `ISS currently at ${Math.abs(parseFloat(lat))}°${ns}, ${Math.abs(parseFloat(lon))}°${ew}, altitude ${alt} km (${vis})`
+    return `International Space Station (ISS) currently at ${Math.abs(parseFloat(lat))}°${ns}, ${Math.abs(parseFloat(lon))}°${ew}, altitude ${alt} km (${vis})`
   } catch {
     return ''
   }
@@ -330,6 +330,215 @@ export async function fetchSunrise(location: string): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Commodities — Yahoo Finance unofficial endpoint (free, no key)
+// Tickers: GC=F gold, SI=F silver, CL=F WTI oil, BZ=F Brent, NG=F nat gas, HG=F copper
+// ---------------------------------------------------------------------------
+
+const COMMODITY_SYMBOLS = [
+  { ticker: 'GC=F',  name: 'Gold',        unit: '/oz' },
+  { ticker: 'SI=F',  name: 'Silver',      unit: '/oz' },
+  { ticker: 'PL=F',  name: 'Platinum',    unit: '/oz' },
+  { ticker: 'PA=F',  name: 'Palladium',   unit: '/oz' },
+  { ticker: 'CL=F',  name: 'WTI Oil',     unit: '/bbl' },
+  { ticker: 'BZ=F',  name: 'Brent Oil',   unit: '/bbl' },
+  { ticker: 'NG=F',  name: 'Nat Gas',     unit: '/MMBtu' },
+  { ticker: 'HG=F',  name: 'Copper',      unit: '/lb' },
+]
+
+async function yahooPrice(ticker: string): Promise<{ price: number; change: number; changePct: number } | null> {
+  try {
+    const res = await fetch(
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=2d`,
+      {
+        signal: AbortSignal.timeout(6000),
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      }
+    )
+    if (!res.ok) return null
+    const d = await res.json()
+    const meta = d?.chart?.result?.[0]?.meta
+    if (!meta?.regularMarketPrice) return null
+    const price = meta.regularMarketPrice as number
+    const prev = (meta.chartPreviousClose ?? meta.previousClose ?? price) as number
+    const change = price - prev
+    const changePct = prev !== 0 ? (change / prev) * 100 : 0
+    return { price, change, changePct }
+  } catch {
+    return null
+  }
+}
+
+export async function fetchCommodities(): Promise<string> {
+  const results = await Promise.all(
+    COMMODITY_SYMBOLS.map(async ({ ticker, name, unit }) => {
+      const q = await yahooPrice(ticker)
+      if (!q) return null
+      const sign = q.change >= 0 ? '+' : ''
+      const price = q.price < 10
+        ? q.price.toFixed(3)
+        : q.price >= 1000 ? Math.round(q.price).toLocaleString('en-US') : q.price.toFixed(2)
+      return `${name}: $${price}${unit} (${sign}${q.changePct.toFixed(1)}%)`
+    })
+  )
+  const parts = results.filter(Boolean) as string[]
+  if (!parts.length) return ''
+  return `Commodity prices: ${parts.join(', ')}`
+}
+
+// ---------------------------------------------------------------------------
+// Stock indices + configurable stocks — Yahoo Finance unofficial
+// Default indices: S&P 500, Nasdaq, Dow Jones
+// ---------------------------------------------------------------------------
+
+const DEFAULT_INDICES = [
+  { ticker: '^GSPC', name: 'S&P 500' },
+  { ticker: '^IXIC', name: 'Nasdaq' },
+  { ticker: '^DJI',  name: 'Dow' },
+]
+
+export async function fetchStocks(extraSymbols: string[] = []): Promise<string> {
+  const symbols = [
+    ...DEFAULT_INDICES,
+    ...extraSymbols.map(s => ({ ticker: s.toUpperCase(), name: s.toUpperCase() })),
+  ]
+  const results = await Promise.all(
+    symbols.map(async ({ ticker, name }) => {
+      const q = await yahooPrice(ticker)
+      if (!q) return null
+      const sign = q.change >= 0 ? '+' : ''
+      const price = q.price >= 1000 ? Math.round(q.price).toLocaleString('en-US') : q.price.toFixed(2)
+      return `${name}: ${price} (${sign}${q.changePct.toFixed(1)}%)`
+    })
+  )
+  const parts = results.filter(Boolean) as string[]
+  if (!parts.length) return ''
+  return `Stock markets: ${parts.join(', ')}`
+}
+
+// ---------------------------------------------------------------------------
+// Moon phase — pure math, no API, no network call
+// ---------------------------------------------------------------------------
+
+export function fetchMoonPhase(): string {
+  const KNOWN_NEW_MOON_MS = new Date('2000-01-06T18:14:00Z').getTime()
+  const SYNODIC_MS = 29.530589 * 24 * 60 * 60 * 1000
+  const now = Date.now()
+  const elapsed = now - KNOWN_NEW_MOON_MS
+  const cyclePos = ((elapsed % SYNODIC_MS) + SYNODIC_MS) % SYNODIC_MS
+  const dayInCycle = cyclePos / (24 * 60 * 60 * 1000)
+  const pct = cyclePos / SYNODIC_MS
+
+  let phase: string
+  if (pct < 0.0625)       phase = 'New Moon'
+  else if (pct < 0.1875)  phase = 'Waxing Crescent'
+  else if (pct < 0.3125)  phase = 'First Quarter'
+  else if (pct < 0.4375)  phase = 'Waxing Gibbous'
+  else if (pct < 0.5625)  phase = 'Full Moon'
+  else if (pct < 0.6875)  phase = 'Waning Gibbous'
+  else if (pct < 0.8125)  phase = 'Last Quarter'
+  else if (pct < 0.9375)  phase = 'Waning Crescent'
+  else                     phase = 'New Moon'
+
+  const illumination = Math.round((1 - Math.cos(2 * Math.PI * pct)) / 2 * 100)
+  return `Moon phase: ${phase} (${illumination}% illuminated, day ${Math.floor(dayInCycle) + 1}/29 of cycle)`
+}
+
+// ---------------------------------------------------------------------------
+// Space launches — The Space Devs Launch Library 2 (free, no key, live data)
+// Rate limit: 15 req/hour on free tier (fine with TTL caching)
+// ---------------------------------------------------------------------------
+
+export async function fetchSpaceX(): Promise<string> {
+  try {
+    const [upcomingRes, previousRes] = await Promise.all([
+      fetch('https://ll.thespacedevs.com/2.3.0/launches/upcoming/?limit=1&format=json', { signal: AbortSignal.timeout(6000) }),
+      fetch('https://ll.thespacedevs.com/2.3.0/launches/previous/?limit=1&format=json', { signal: AbortSignal.timeout(6000) }),
+    ])
+
+    const parts: string[] = []
+
+    if (upcomingRes.ok) {
+      const d = await upcomingRes.json()
+      const launch = d?.results?.[0]
+      if (launch?.name) {
+        const date = launch.net ? new Date(launch.net).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBD'
+        const pad = launch.pad?.location?.country_code ? ` (${launch.pad.location.country_code})` : ''
+        parts.push(`Next: "${launch.name}" on ${date}${pad}`)
+      }
+    }
+
+    if (previousRes.ok) {
+      const d = await previousRes.json()
+      const launch = d?.results?.[0]
+      if (launch?.name) {
+        const date = launch.net ? new Date(launch.net).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''
+        const status = launch.status?.abbrev === 'Success' ? 'success' : launch.status?.abbrev === 'Failure' ? 'failure' : (launch.status?.name || 'unknown')
+        parts.push(`Last: "${launch.name}" on ${date} (${status})`)
+      }
+    }
+
+    if (!parts.length) return ''
+    return `Space launches — ${parts.join(' | ')}`
+  } catch {
+    return ''
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sports scores — ESPN unofficial API (free, no key, live scores)
+// Supported leagues: nfl, nba, nhl, mlb, mls, soccer/usa.1
+// ---------------------------------------------------------------------------
+
+const LEAGUE_LABEL: Record<string, string> = {
+  nfl: 'NFL', nba: 'NBA', nhl: 'NHL', mlb: 'MLB', mls: 'MLS'
+}
+
+export async function fetchSports(leagues: string[] = ['nfl', 'nba']): Promise<string> {
+  const parts: string[] = []
+
+  await Promise.all(
+    leagues.slice(0, 4).map(async (league) => {
+      try {
+        const sport = ['nfl', 'nba', 'nhl', 'mlb'].includes(league)
+          ? (league === 'nfl' ? 'football/nfl' : league === 'nba' ? 'basketball/nba' : league === 'nhl' ? 'hockey/nhl' : 'baseball/mlb')
+          : `soccer/${league}`
+        const res = await fetch(
+          `https://site.api.espn.com/apis/site/v2/sports/${sport}/scoreboard`,
+          { signal: AbortSignal.timeout(5000) }
+        )
+        if (!res.ok) return
+        const d = await res.json()
+        const events: Array<{
+          name: string
+          status: { type: { state: string; shortDetail: string } }
+          competitions: Array<{ competitors: Array<{ team: { abbreviation: string }; score: string; winner?: boolean }> }>
+        }> = d.events || []
+        if (!events.length) {
+          parts.push(`${LEAGUE_LABEL[league] || league}: No games today`)
+          return
+        }
+        const scores = events.slice(0, 3).map(e => {
+          const teams = e.competitions?.[0]?.competitors || []
+          const away = teams.find((_, i) => i === 0)
+          const home = teams.find((_, i) => i === 1)
+          const state = e.status?.type?.state
+          if (!away || !home) return e.name
+          const detail = e.status?.type?.shortDetail || ''
+          if (state === 'pre') return `${away.team.abbreviation} @ ${home.team.abbreviation} (${detail})`
+          return `${away.team.abbreviation} ${away.score}-${home.score} ${home.team.abbreviation} (${detail})`
+        })
+        parts.push(`${LEAGUE_LABEL[league] || league}: ${scores.join(', ')}`)
+      } catch {
+        // skip failed league
+      }
+    })
+  )
+
+  if (!parts.length) return ''
+  return `Sports scores: ${parts.join(' | ')}`
+}
+
+// ---------------------------------------------------------------------------
 // Fetch all feeds in parallel — called by update-market-data.mts
 // Returns a Record<string, string> of feed name → summary string
 // ---------------------------------------------------------------------------
@@ -339,6 +548,8 @@ export interface DataFeedsConfig {
   baseCurrency?: string
   cryptoAssets?: string[]
   earthquakeMinMagnitude?: number
+  stockSymbols?: string[]
+  sportsLeagues?: string[]
 }
 
 export async function fetchAllFeeds(cfg: DataFeedsConfig = {}): Promise<Record<string, string>> {
@@ -346,8 +557,11 @@ export async function fetchAllFeeds(cfg: DataFeedsConfig = {}): Promise<Record<s
   const base = cfg.baseCurrency || 'USD'
   const assets = cfg.cryptoAssets || ['bitcoin', 'ethereum', 'solana']
   const minMag = cfg.earthquakeMinMagnitude || 4.0
+  const stockSymbols = cfg.stockSymbols || []
+  const sportsLeagues = cfg.sportsLeagues || ['nfl', 'nba']
 
-  const [weather, airQuality, forex, crypto, earthquakes, naturalEvents, recalls, news, iss, sunrise] =
+  const [weather, airQuality, forex, crypto, earthquakes, naturalEvents, recalls, news, iss, sunrise,
+         commodities, stocks, spacex, sports] =
     await Promise.allSettled([
       location ? fetchWeather(location) : Promise.resolve(''),
       location ? fetchAirQuality(location) : Promise.resolve(''),
@@ -359,6 +573,10 @@ export async function fetchAllFeeds(cfg: DataFeedsConfig = {}): Promise<Record<s
       fetchNews(),
       fetchIss(),
       location ? fetchSunrise(location) : Promise.resolve(''),
+      fetchCommodities(),
+      fetchStocks(stockSymbols),
+      fetchSpaceX(),
+      fetchSports(sportsLeagues),
     ])
 
   const get = (r: PromiseSettledResult<string>) => r.status === 'fulfilled' ? r.value : ''
@@ -374,6 +592,11 @@ export async function fetchAllFeeds(cfg: DataFeedsConfig = {}): Promise<Record<s
     news: get(news),
     iss: get(iss),
     sunrise: get(sunrise),
+    commodities: get(commodities),
+    stocks: get(stocks),
+    moon_phase: fetchMoonPhase(),
+    spacex: get(spacex),
+    sports: get(sports),
   }
 }
 
@@ -394,12 +617,17 @@ export function selectFeedsForQuestion(question: string, feeds: Record<string, s
   check('air_quality',    /air quality|aqi|pollution|pm2\.?5|pm10|smog|haze|particulate|ozone|air/)
   check('forex',          /forex|exchange rate|currency|dollar|euro|pound|yen|convert|usd|eur|gbp|jpy|cny|aud|cad|rate|fx /)
   check('crypto',         /bitcoin|btc|ethereum|eth|crypto|solana|sol|coin|defi|blockchain|nft|altcoin|trading|binance|coinbase/)
+  check('commodities',    /gold|silver|platinum|palladium|oil|crude|brent|wti|natural gas|copper|commodity|commodities|precious metal|barrel|spot price/)
+  check('stocks',         /stock|s&p|nasdaq|dow|market|equit|share price|nyse|index|indices|wall street|sp500|stonk/)
   check('earthquakes',    /earthquake|quake|seismic|tremor|magnitude|richter|fault|aftershock|tsunami/)
   check('natural_events', /wildfire|fire|hurricane|typhoon|cyclone|volcano|flood|disaster|natural event|storm surge/)
   check('recalls',        /recall|fda|food safety|contamination|drug recall|warning label|safety alert|listeria|salmonella/)
   check('news',           /news|headline|today|current events|latest|happening|trending|breaking/)
   check('iss',            /\biss\b|space station|astronaut|orbit|nasa mission/)
   check('sunrise',        /sunrise|sunset|golden hour|dusk|dawn|daylight|sun rise|sun set/)
+  check('moon_phase',     /moon|lunar|crescent|full moon|new moon|gibbous|waxing|waning|moonrise|tide/)
+  check('spacex',         /spacex|rocket|launch|falcon|starship|elon musk.*space|space.*launch|crew dragon/)
+  check('sports',         /score|game|nfl|nba|nhl|mlb|football|basketball|hockey|baseball|match|standings|playoff|touchdown|goal/)
 
   return selected.filter(Boolean).join('\n')
 }
