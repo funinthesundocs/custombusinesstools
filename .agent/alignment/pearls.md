@@ -1,49 +1,141 @@
-# RAG Factory Pearls of Wisdom
-<!-- Format: one table per category. Columns: Pearl | Notes | Uses -->
-<!-- Uses counter is incremented by /harvest when ⚡ invocation logs are found -->
+# RAG Factory — Pearls of Wisdom
+<!--
+  SCHEMA: Two tables per category.
+  GUIDANCE table  — read at boot by the agent. Drives behavior during the session.
+  METRICS table   — read and updated at harvest. Tracks value over time.
+  Pearl title is the shared key between the two tables — must match exactly.
+
+  Pearl Value  = Uses × Min/Use  (total minutes saved across all invocations)
+  Hit Rate     = Uses / Opportunities  (how often the pearl fires when it should)
+  Pruning rule = Maturity=Seed AND Total Saved < 15min AND Age > 60 days → flag for human review
+-->
 
 ---
 
 ## Category: Agent Pipeline (Auto-Research)
 
-| Pearl | Notes | Uses |
-|-------|-------|------|
-| `PROCESS_TASK_URL must be localhost in dev` | If it points to prod URL in dev, research fires externally, Supabase Realtime never gets the completion signal, spinner never clears. Must be `http://localhost:9999/.netlify/functions/process-task` in `.env` and `.env.local`. | 0 |
-| `config.supabase.project_id must be a real UUID` | If it's a placeholder string, Pinecone namespace query returns zero results, agent triggers research mode for EVERY question, system appears broken. | 0 |
-| `sync-config after every config.json change` | Three config.json copies exist: root, web/presentation, web/dashboard. Stale copies cause silent Pinecone namespace mismatches. Always run `npm run sync-config` immediately after any config.json edit. | 0 |
-| `Auto-research end-to-end test` | Ask "What is [topic NOT in knowledge base]?" → agent says "Let me research that" → spinner appears → within 30–60s a follow-up appears starting "I just got some updated information —". If follow-up never arrives, PROCESS_TASK_URL is wrong. | 0 |
+**Guidance** *(loaded at boot — drives session behavior)*
+
+| Pearl | Notes | Type | Trigger | Confidence |
+|-------|-------|------|---------|------------|
+| `PROCESS_TASK_URL must be localhost in dev` | If it points to the prod URL in dev, research fires externally, Supabase Realtime never gets the completion signal, and the spinner never clears. Must be `http://localhost:9999/.netlify/functions/process-task` in `.env` and `.env.local`. | Prevention | When setting up, testing, or debugging the auto-research pipeline; when editing any `.env` file | Hard Constraint |
+| `config.supabase.project_id must be a real UUID` | If it is a placeholder string, the vector store namespace query returns zero results and the agent triggers research mode for every question — the system appears broken. | Prevention | When initializing a new deployment or debugging "agent always says it needs to research" behavior | Hard Constraint |
+| `sync-config after every config.json change` | Three config.json copies exist: root, web/presentation, web/dashboard. Stale copies cause silent namespace mismatches. Always run `npm run sync-config` immediately after any config.json edit. | Prevention | Any time config.json is opened for editing | Hard Constraint |
+| `Auto-research end-to-end test` | Ask "What is [topic NOT in knowledge base]?" → agent says "Let me research that" → spinner appears → within 30–60s a follow-up appears starting "I just got some updated information —". If the follow-up never arrives, PROCESS_TASK_URL is wrong. | Diagnostic | After any changes to the auto-research pipeline, before declaring it working | Strong Heuristic |
+
+**Metrics** *(updated at harvest)*
+
+| Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
+|-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
+| `PROCESS_TASK_URL must be localhost in dev` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `config.supabase.project_id must be a real UUID` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `sync-config after every config.json change` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `Auto-research end-to-end test` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
 
 ---
 
 ## Category: Off-Limits Files
 
-| Pearl | Notes | Uses |
-|-------|-------|------|
-| `Never touch the agent core files` | `chat.mts`, `process-task.mts`, `tts.mts`, `AIChat.tsx` — even trivial renames risk silent pipeline breaks. 8+ hours were spent getting this right. Any edit requires explicit user approval. | 0 |
+**Guidance** *(loaded at boot)*
+
+| Pearl | Notes | Type | Trigger | Confidence |
+|-------|-------|------|---------|------------|
+| `Never touch the agent core files` | `chat.mts`, `process-task.mts`, `tts.mts`, `AIChat.tsx` — even trivial renames risk silent pipeline breaks that took 8+ hours to perfect. Any edit to these files requires explicit user approval before proceeding. | Prevention | Any time about to edit files in `netlify/functions/` or the chat UI component | Hard Constraint |
+
+**Metrics** *(updated at harvest)*
+
+| Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
+|-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
+| `Never touch the agent core files` | Established | (unknown) | 2026-09-14 | 0 | 0 | 480 | 0 | — |
 
 ---
 
 ## Category: Architecture
 
-| Pearl | Notes | Uses |
-|-------|-------|------|
-| `One repo = one agent = one client` | This is a deployable template. To spin up a new client: duplicate the entire repo. Each instance is fully independent — own Pinecone namespace, own config, own persona. | 0 |
-| `This is NOT a deal-prep system` | GMC/Aboitiz was the first use case only. The template is content-agnostic. Never hardcode business intelligence assumptions into the pipeline. | 0 |
-| `Dashboard is backburner` | localhost:8888 dashboard is too GMC-specific. It is NOT the current focus. Don't refactor or extend it unless explicitly asked. | 0 |
+**Guidance** *(loaded at boot)*
+
+| Pearl | Notes | Type | Trigger | Confidence |
+|-------|-------|------|---------|------------|
+| `One repo = one agent = one client` | This is a deployable template. To spin up a new client: duplicate the entire repo. Each instance is fully independent — own vector store namespace, own config, own persona. Never try to serve multiple clients from one repo. | Orientation | When designing new features, considering adding a second client, or reusing any part of the repo | Hard Constraint |
+| `Template is content-agnostic` | The first use case was one specific engagement. The template works for any knowledge domain. Never hardcode domain-specific assumptions into the pipeline architecture. | Orientation | When building new features, structuring knowledge folders, or designing ingestion pipelines | Hard Constraint |
+| `Dashboard is backburner` | The localhost:8888 dashboard is use-case-specific and not the current focus. Do not refactor, extend, or improve it unless explicitly requested. | Orientation | Any time the dashboard comes up in conversation or a change to it seems logical | Strong Heuristic |
+
+**Metrics** *(updated at harvest)*
+
+| Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
+|-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
+| `One repo = one agent = one client` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `Template is content-agnostic` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `Dashboard is backburner` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
 
 ---
 
 ## Category: Tooling
 
-| Pearl | Notes | Uses |
-|-------|-------|------|
-| `Grep content does not satisfy Edit's read requirement` | Even if you have the exact line from a Grep result, the Edit tool will reject the call with "File has not been read yet." Always call Read explicitly on every file before any Edit, even in bulk rename operations. | 1 |
+**Guidance** *(loaded at boot)*
+
+| Pearl | Notes | Type | Trigger | Confidence |
+|-------|-------|------|---------|------------|
+| `Grep does not satisfy Edit's read requirement` | Even with the exact line from a Grep result, the Edit tool rejects the call with "File has not been read yet." Always call Read explicitly on every file before any Edit — even in bulk rename operations, even when you already have the content. | Prevention | Before calling Edit on any file, especially immediately after a Grep search | Hard Constraint |
+| `Dev script may not be at repo root` | The dev server command and port may live in a subdirectory package.json (e.g., `web/dashboard`). Always search all package.json files for the dev script matching the detected port — never assume root has the dev script. | Prevention | When starting the dev server or running `npm run dev` during boot | Hard Constraint |
+
+**Metrics** *(updated at harvest)*
+
+| Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
+|-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
+| `Grep does not satisfy Edit's read requirement` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
+| `Dev script may not be at repo root` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 5 | 5 | 100% |
 
 ---
 
 ## Category: Knowledge Ingestion
 
-| Pearl | Notes | Uses |
-|-------|-------|------|
-| `Subfolder name = Pinecone track metadata` | Files in `knowledge/documents/` get `track: documents` in Pinecone. The subfolder name is automatically used as the metadata track. This is load-bearing — don't flatten the folder structure. | 0 |
-| `Manual drop path is the only complete path` | Client upload UI, API/MCP, and web scraper ingestion are NOT built. Only `knowledge/` drop + `embed-documents.ts` is production-ready. Don't imply otherwise to clients. | 0 |
+**Guidance** *(loaded at boot)*
+
+| Pearl | Notes | Type | Trigger | Confidence |
+|-------|-------|------|---------|------------|
+| `Subfolder name is the metadata track` | Files in knowledge subfolders get the subfolder name as their metadata track in the vector store. This is load-bearing for retrieval filtering — do not flatten the folder structure. | Prevention | When organizing the knowledge folder, adding new content types, or restructuring ingestion | Hard Constraint |
+| `Manual drop is the only complete path` | Client upload UI, API/MCP, and web scraper ingestion are not yet built. Only the manual drop + embed script is production-ready. Do not imply otherwise to any client or stakeholder. | Orientation | When discussing knowledge ingestion options or demo-ing the system to anyone | Hard Constraint |
+
+**Metrics** *(updated at harvest)*
+
+| Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
+|-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
+| `Subfolder name is the metadata track` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `Manual drop is the only complete path` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+
+---
+
+## Category: Alignment System (Meta)
+
+*Pearls about the pearl system itself — how to use it, maintain it, and avoid its failure modes.*
+
+**Guidance** *(loaded at boot)*
+
+| Pearl | Notes | Type | Trigger | Confidence |
+|-------|-------|------|---------|------------|
+| `Pearl value is Uses times Min/Use` | Pearl value is total time saved (Uses × Min/Use), not frequency. A pearl invoked once that prevents an 8-hour mistake outvalues one invoked 100 times saving 2 minutes each. Never prune based on Uses count alone. | Orientation | When evaluating any pearl for pruning, or reviewing the health of the pearl library | Hard Constraint |
+| `Min/Use is measured not estimated` | Min/Use comes from the actual elapsed time of the debugging cycle that produced the pearl — read from conversation timestamps or user-stated time. It is a measurement, not a guess. | Prevention | When writing a new pearl at harvest — before filling in the Min/Use field | Hard Constraint |
+| `Every pearl needs an explicit Trigger` | Pearls without specific trigger conditions will be silently invoked (or never invoked) with no record either way. Vague triggers produce low Hit Rates. Be precise: name the exact observable moment that should force evaluation. | Prevention | When writing any new pearl — before finalizing the Trigger field | Hard Constraint |
+| `Hit Rate exposes invisible failures` | Hit Rate = Uses / Opportunities. A pearl with low Hit Rate is failing most of the time it should fire — the knowledge exists, the situations are arising, but the pearl is not being applied. Low Hit Rate signals a trigger or wording problem, not a pearl quality problem. | Diagnostic | During harvest when reviewing pearl effectiveness, especially for Established pearls with declining performance | Strong Heuristic |
+| `Copied skills carry project residue` | Any skill, prompt, or template copied from another project must be audited for project-specific names, paths, assumptions, and references before use in a new project. | Prevention | Whenever copying any file, skill, or template from another project's directory | Hard Constraint |
+
+**Metrics** *(updated at harvest)*
+
+| Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
+|-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
+| `Pearl value is Uses times Min/Use` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 30 | 0 | — |
+| `Min/Use is measured not estimated` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 20 | 0 | — |
+| `Every pearl needs an explicit Trigger` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 60 | 0 | — |
+| `Hit Rate exposes invisible failures` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 30 | 0 | — |
+| `Copied skills carry project residue` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 15 | 15 | 100% |
+
+---
+
+## Retired Pearls
+
+*Pearls that were once valid but no longer apply. Never loaded at boot. Preserved as institutional history.*
+
+| Pearl | Original Notes | Retired | Originally Added | Date Retired | Reason |
+|-------|---------------|---------|-----------------|--------------|--------|
+| *(none yet)* | | | | | |
