@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { X } from 'lucide-react'
 
-type TabName = 'Identity' | 'Soul' | 'Voice' | 'Response'
+type TabName = 'Persona' | 'Behavior'
 
 interface SiteConfig {
   company: {
@@ -39,10 +39,10 @@ interface SiteConfig {
   }
 }
 
-const TABS: TabName[] = ['Identity', 'Soul', 'Voice', 'Response']
+const TABS: TabName[] = ['Persona', 'Behavior']
 
 export default function AgentConfigPage() {
-  const [activeTab, setActiveTab] = useState<TabName>('Identity')
+  const [activeTab, setActiveTab] = useState<TabName>('Persona')
   const [config, setConfig] = useState<SiteConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
@@ -126,7 +126,7 @@ export default function AgentConfigPage() {
   useEffect(() => { loadConfig() }, [loadConfig])
 
   useEffect(() => {
-    if (activeTab === 'Soul') loadSystemPrompt()
+    if (activeTab === 'Persona') loadSystemPrompt()
   }, [activeTab, loadSystemPrompt])
 
   const saveConfig = async (partial: Record<string, unknown>) => {
@@ -196,7 +196,7 @@ export default function AgentConfigPage() {
         </div>
       )}
 
-      <h1 className="text-2xl font-semibold">Agent Configuration</h1>
+      <h1 className="text-2xl font-semibold">Agent</h1>
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-zinc-800">
@@ -215,121 +215,100 @@ export default function AgentConfigPage() {
         ))}
       </div>
 
-      {/* IDENTITY TAB */}
-      {activeTab === 'Identity' && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-5">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Agent Name</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                value={agentName}
-                onChange={e => setAgentName(e.target.value)}
-              />
+      {/* PERSONA TAB — Identity + Soul merged */}
+      {activeTab === 'Persona' && (
+        <div className="space-y-5">
+          {/* Identity section */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+            <h3 className="text-sm font-semibold text-zinc-200">Identity</h3>
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Agent Name</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={agentName}
+                  onChange={e => setAgentName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Agent Role</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={agentRole}
+                  onChange={e => setAgentRole(e.target.value)}
+                />
+              </div>
+              <div className="col-span-2">
+                <label className="block text-xs text-zinc-500 mb-1.5">Personality / Tagline</label>
+                <textarea
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)] resize-none"
+                  rows={3}
+                  value={agentPersonality}
+                  onChange={e => setAgentPersonality(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Company Name</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={companyName}
+                  onChange={e => setCompanyName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Company Short Name</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={companyShortName}
+                  onChange={e => setCompanyShortName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Company Tagline</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={companyTagline}
+                  onChange={e => setCompanyTagline(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Domain</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={domain}
+                  onChange={e => setDomain(e.target.value)}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Agent Role</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                value={agentRole}
-                onChange={e => setAgentRole(e.target.value)}
-              />
-            </div>
-            <div className="col-span-2">
-              <label className="block text-xs text-zinc-500 mb-1.5">Agent Personality / Tagline</label>
-              <textarea
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)] resize-none"
-                rows={3}
-                value={agentPersonality}
-                onChange={e => setAgentPersonality(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Company Name</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                value={companyName}
-                onChange={e => setCompanyName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Company Short Name</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                value={companyShortName}
-                onChange={e => setCompanyShortName(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Company Tagline</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                value={companyTagline}
-                onChange={e => setCompanyTagline(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Domain</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                value={domain}
-                onChange={e => setDomain(e.target.value)}
-              />
-            </div>
-          </div>
-          <button
-            onClick={() => saveConfig({
-              agent: { name: agentName, role: agentRole, personality: agentPersonality },
-              company: { name: companyName, short_name: companyShortName, tagline: companyTagline, domain },
-            })}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
-          >
-            Save Identity
-          </button>
-        </div>
-      )}
-
-      {/* SOUL TAB */}
-      {activeTab === 'Soul' && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
-          <p className="text-xs text-zinc-500">Edit the sections that define your agent&apos;s behavior. The system prompt file is loaded by the chat pipeline on each conversation.</p>
-
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1.5">Agent Personality (short)</label>
-            <textarea
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)] resize-none"
-              rows={3}
-              value={agentPersonality}
-              onChange={e => setAgentPersonality(e.target.value)}
-            />
+            <button
+              onClick={() => saveConfig({
+                agent: { name: agentName, role: agentRole, personality: agentPersonality },
+                company: { name: companyName, short_name: companyShortName, tagline: companyTagline, domain },
+              })}
+              className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+            >
+              Save Identity
+            </button>
           </div>
 
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1.5">System Prompt File Path</label>
-            <input
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-              value={config?.agent?.systemPromptPath ?? ''}
-              readOnly
-            />
-            <p className="text-[10px] text-zinc-600 mt-1">Relative to repo root. Change in config.json if needed.</p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
+          {/* Soul section */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+            <h3 className="text-sm font-semibold text-zinc-200">System Prompt</h3>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">System Prompt File Path</label>
+              <input
+                className="w-full bg-zinc-800/50 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-400 font-mono cursor-not-allowed"
+                value={config?.agent?.systemPromptPath ?? ''}
+                readOnly
+              />
+              <p className="text-[10px] text-zinc-600 mt-1">Relative to repo root. Change in config.json if needed.</p>
+            </div>
+            <div>
               <label className="block text-xs text-zinc-500 mb-1.5">System Prompt Preview</label>
               <div className="bg-zinc-950 border border-zinc-800 rounded-md p-3 h-32 overflow-y-auto font-mono text-xs text-zinc-400">
                 {systemPromptContent ? systemPromptContent.slice(0, 400) + (systemPromptContent.length > 400 ? '...' : '') : <span className="text-zinc-600 italic">No system prompt file found at configured path.</span>}
               </div>
             </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => saveConfig({ agent: { personality: agentPersonality } })}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
-            >
-              Save Personality
-            </button>
             {systemPromptContent && (
               <button
                 onClick={() => { setPromptModalContent(systemPromptContent); setShowPromptModal(true) }}
@@ -342,194 +321,180 @@ export default function AgentConfigPage() {
         </div>
       )}
 
-      {/* VOICE TAB */}
-      {activeTab === 'Voice' && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-zinc-200">Enable Voice</p>
-              <p className="text-xs text-zinc-500">Allow text-to-speech responses</p>
+      {/* BEHAVIOR TAB — Voice + Response merged */}
+      {activeTab === 'Behavior' && (
+        <div className="space-y-5">
+          {/* Voice section */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+            <h3 className="text-sm font-semibold text-zinc-200">Voice</h3>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-zinc-200">Enable Voice</p>
+                <p className="text-xs text-zinc-500">Allow text-to-speech responses</p>
+              </div>
+              <button
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${voiceEnabled ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${voiceEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Voice ID</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  value={voiceId}
+                  onChange={e => setVoiceId(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Voice Model</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  value={voiceModel}
+                  onChange={e => setVoiceModel(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => saveConfig({ voice: { enabled: voiceEnabled, voiceId, model: voiceModel } })}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+              >
+                Save Voice
+              </button>
+              <button
+                onClick={testVoice}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 transition-colors"
+              >
+                Test Voice
+              </button>
+            </div>
+          </div>
+
+          {/* Response tuning section */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+            <h3 className="text-sm font-semibold text-zinc-200">Retrieval Tuning</h3>
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Match Count</label>
+                <input
+                  type="number" min={1} max={50}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  value={matchCount}
+                  onChange={e => setMatchCount(Number(e.target.value))}
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">Vectors retrieved per query. Higher = more context, slower.</p>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Chunk Max Chars</label>
+                <input
+                  type="number" min={500} max={10000}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  value={chunkMaxChars}
+                  onChange={e => setChunkMaxChars(Number(e.target.value))}
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">Parent chunk size during embed. Affects context window use.</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-zinc-500">Similarity Threshold</label>
+                  <span className="text-zinc-300 font-mono text-sm">{similarityThreshold.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range" min={0} max={1} step={0.01}
+                  className="w-full accent-[var(--color-primary)]"
+                  value={similarityThreshold}
+                  onChange={e => setSimilarityThreshold(Number(e.target.value))}
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">Min score to include a chunk. Lower = more results, less precise.</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-zinc-500">Research Threshold</label>
+                  <span className="text-zinc-300 font-mono text-sm">{researchThreshold.toFixed(2)}</span>
+                </div>
+                <input
+                  type="range" min={0} max={1} step={0.01}
+                  className="w-full accent-[var(--color-primary)]"
+                  value={researchThreshold}
+                  onChange={e => setResearchThreshold(Number(e.target.value))}
+                />
+                <p className="text-[10px] text-zinc-600 mt-1">Score below this triggers auto-research. Higher = triggers more often.</p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-3 border-t border-zinc-800">
+              <div>
+                <p className="text-sm font-medium text-zinc-200">Auto-Research</p>
+                <p className="text-xs text-zinc-500">Automatically research knowledge gaps when RAG confidence is low</p>
+              </div>
+              <button
+                onClick={() => setAutoResearch(!autoResearch)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${autoResearch ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoResearch ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between py-3 border-t border-zinc-800">
+              <div>
+                <p className="text-sm font-medium text-zinc-200">Market Data</p>
+                <p className="text-xs text-zinc-500">Include live market & weather data in context</p>
+              </div>
+              <button
+                onClick={() => setMarketEnabled(!marketEnabled)}
+                className={`relative h-6 w-11 rounded-full transition-colors ${marketEnabled ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${marketEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+
+            {marketEnabled && (
+              <div className="grid grid-cols-3 gap-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Weather Location</label>
+                  <input
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                    value={weatherName}
+                    onChange={e => setWeatherName(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Latitude</label>
+                  <input
+                    type="number" step="0.0001"
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                    value={weatherLat}
+                    onChange={e => setWeatherLat(Number(e.target.value))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1.5">Longitude</label>
+                  <input
+                    type="number" step="0.0001"
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                    value={weatherLng}
+                    onChange={e => setWeatherLng(Number(e.target.value))}
+                  />
+                </div>
+              </div>
+            )}
+
             <button
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${voiceEnabled ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
-            >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${voiceEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
-
-          <div>
-            <label className="block text-xs text-zinc-500 mb-1.5">Voice Provider</label>
-            <input
-              className="w-full bg-zinc-800/50 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-400 cursor-not-allowed"
-              value={config?.voice?.provider ?? 'elevenlabs'}
-              readOnly
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Voice ID</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={voiceId}
-                onChange={e => setVoiceId(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Voice Model</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={voiceModel}
-                onChange={e => setVoiceModel(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3">
-            <button
-              onClick={() => saveConfig({ voice: { enabled: voiceEnabled, voiceId, model: voiceModel } })}
+              onClick={() => saveConfig({
+                rag: { matchCount, similarityThreshold, researchThreshold, chunkMaxChars },
+                market_data: {
+                  enabled: marketEnabled,
+                  weather_location: { name: weatherName, latitude: weatherLat, longitude: weatherLng },
+                },
+              })}
               className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
             >
-              Save Voice Settings
-            </button>
-            <button
-              onClick={testVoice}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 transition-colors"
-            >
-              Test Voice
+              Save Behavior
             </button>
           </div>
-        </div>
-      )}
-
-      {/* RESPONSE TAB */}
-      {activeTab === 'Response' && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-5">
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Match Count (RAG chunks)</label>
-              <input
-                type="number"
-                min={1}
-                max={50}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={matchCount}
-                onChange={e => setMatchCount(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Chunk Max Chars</label>
-              <input
-                type="number"
-                min={500}
-                max={10000}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={chunkMaxChars}
-                onChange={e => setChunkMaxChars(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-2">
-                Similarity Threshold: <span className="text-zinc-300 font-mono">{similarityThreshold.toFixed(2)}</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                className="w-full accent-[var(--color-primary)]"
-                value={similarityThreshold}
-                onChange={e => setSimilarityThreshold(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-2">
-                Research Threshold: <span className="text-zinc-300 font-mono">{researchThreshold.toFixed(2)}</span>
-              </label>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.01}
-                className="w-full accent-[var(--color-primary)]"
-                value={researchThreshold}
-                onChange={e => setResearchThreshold(Number(e.target.value))}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-t border-zinc-800">
-            <div>
-              <p className="text-sm font-medium text-zinc-200">Auto-Research Enabled</p>
-              <p className="text-xs text-zinc-500">Automatically research knowledge gaps</p>
-            </div>
-            <button
-              onClick={() => setAutoResearch(!autoResearch)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${autoResearch ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
-            >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoResearch ? 'translate-x-5' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
-
-          <div className="flex items-center justify-between py-3 border-t border-zinc-800">
-            <div>
-              <p className="text-sm font-medium text-zinc-200">Market Data Enabled</p>
-              <p className="text-xs text-zinc-500">Include live market & weather data in context</p>
-            </div>
-            <button
-              onClick={() => setMarketEnabled(!marketEnabled)}
-              className={`relative h-6 w-11 rounded-full transition-colors ${marketEnabled ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
-            >
-              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${marketEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
-            </button>
-          </div>
-
-          {marketEnabled && (
-            <div className="grid grid-cols-3 gap-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1.5">Weather Location Name</label>
-                <input
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
-                  value={weatherName}
-                  onChange={e => setWeatherName(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1.5">Latitude</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                  value={weatherLat}
-                  onChange={e => setWeatherLat(Number(e.target.value))}
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-zinc-500 mb-1.5">Longitude</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                  value={weatherLng}
-                  onChange={e => setWeatherLng(Number(e.target.value))}
-                />
-              </div>
-            </div>
-          )}
-
-          <button
-            onClick={() => saveConfig({
-              rag: { matchCount, similarityThreshold, researchThreshold, chunkMaxChars },
-              market_data: {
-                enabled: marketEnabled,
-                weather_location: { name: weatherName, latitude: weatherLat, longitude: weatherLng },
-              },
-            })}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
-          >
-            Save Response Settings
-          </button>
         </div>
       )}
 

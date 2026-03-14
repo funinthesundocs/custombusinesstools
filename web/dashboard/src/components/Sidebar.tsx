@@ -4,22 +4,17 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Database, Cpu, Bot, Factory,
-  Package, Globe, ShieldCheck, Settings, Activity,
-  ChevronLeft, ChevronRight, Brain
+  LayoutDashboard, BookOpen, Bot, GitBranch,
+  Settings, Activity,
+  ChevronLeft, ChevronRight
 } from 'lucide-react'
 
 const NAV_ITEMS = {
   operations: [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/intelligence', icon: Database, label: 'Knowledge Base' },
-    { href: '/documents', icon: Cpu, label: 'Embed Control' },
-    { href: '/agents', icon: Bot, label: 'Agent Config' },
-    { href: '/production', icon: Factory, label: 'Production' },
-    { href: '/deliverables', icon: Package, label: 'Deliverables' },
-    { href: '/presentation', icon: Globe, label: 'Presentation Site' },
-    { href: '/verification', icon: ShieldCheck, label: 'Verification' },
-    { href: '/agent', icon: Brain, label: 'AI Agent' },
+    { href: '/knowledge', icon: BookOpen, label: 'Knowledge' },
+    { href: '/agents', icon: Bot, label: 'Agent' },
+    { href: '/pipeline', icon: GitBranch, label: 'Pipeline' },
   ],
   system: [
     { href: '/settings', icon: Settings, label: 'Settings' },

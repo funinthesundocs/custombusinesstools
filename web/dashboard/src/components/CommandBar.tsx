@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 const COMMANDS = [
   { cmd: '/research-target', desc: 'Run audience intelligence gathering', phase: 1 },
   { cmd: '/process-documents', desc: 'Run all document processing pipelines', phase: 3 },
+  { cmd: '/sync-knowledge', desc: 'Embed new and changed knowledge files', phase: 3 },
   { cmd: '/engineer-context', desc: 'Create production source documents and prompts', phase: 5 },
   { cmd: '/route-production', desc: 'Generate deliverables via optimal engines', phase: 6 },
   { cmd: '/build-web', desc: 'Build/update presentation site', phase: 8 },

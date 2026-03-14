@@ -5,9 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { useRealtimeSubscription } from '@/lib/realtime'
 import type { ActivityLog } from '@/lib/types'
 import {
-  Database, Cpu, Key, Cloud, Mic, BarChart3,
+  Database, Cpu, Cloud, Mic, BarChart3,
   Layers, MessageSquare, FolderOpen, ClipboardList,
-  CheckCircle2, XCircle, Clock
 } from 'lucide-react'
 import Link from 'next/link'
 
@@ -56,27 +55,6 @@ function statusColor(status: string) {
   return 'text-red-400'
 }
 
-function TaskStatusBadge({ status }: { status: string }) {
-  const cls =
-    status === 'complete' ? 'bg-emerald-900/60 text-emerald-400 border-emerald-800' :
-    status === 'pending' ? 'bg-amber-900/60 text-amber-400 border-amber-800' :
-    status === 'in_progress' ? 'bg-blue-900/60 text-blue-400 border-blue-800' :
-    status === 'failed' ? 'bg-red-900/60 text-red-400 border-red-800' :
-    'bg-zinc-800 text-zinc-400 border-zinc-700'
-  return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border ${cls}`}>
-      {status}
-    </span>
-  )
-}
-
-function TaskTypeBadge({ type }: { type: string }) {
-  return (
-    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 font-mono">
-      {type}
-    </span>
-  )
-}
 
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthData | null>(null)
@@ -223,7 +201,7 @@ export default function DashboardPage() {
     },
   ]
 
-  const recentTasks = tasks.slice(0, 5)
+  const recentActivities = activities.slice(0, 5)
 
   return (
     <div className="page-enter space-y-6">
@@ -262,41 +240,17 @@ export default function DashboardPage() {
         })}
       </div>
 
-      {/* Research Queue Preview */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-zinc-200">Research Queue</h3>
-          <Link href="/documents" className="text-xs text-[var(--color-primary)] hover:underline">View all →</Link>
-        </div>
-        {recentTasks.length === 0 ? (
-          <p className="text-sm text-zinc-500 italic">No tasks yet.</p>
-        ) : (
-          <div className="space-y-2">
-            {recentTasks.map(task => {
-              const question = (task.payload?.question as string) || (task.payload?.query as string) || JSON.stringify(task.payload).slice(0, 60)
-              return (
-                <div key={task.id} className="flex items-center gap-3 py-2 border-b border-zinc-800/50 last:border-0">
-                  <TaskTypeBadge type={task.task_type} />
-                  <TaskStatusBadge status={task.status} />
-                  <p className="flex-1 text-xs text-zinc-400 truncate">{question}</p>
-                  <span className="text-[10px] text-zinc-600 font-mono shrink-0">
-                    {new Date(task.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
       {/* Activity Feed */}
       <div>
-        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Recent Activity</h3>
-        <div className="space-y-2 max-h-[300px] overflow-y-auto">
-          {activities.length === 0 ? (
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-zinc-200">Recent Activity</h3>
+          <Link href="/activity" className="text-xs text-[var(--color-primary)] hover:underline">View all →</Link>
+        </div>
+        <div className="space-y-2">
+          {recentActivities.length === 0 ? (
             <p className="text-xs text-zinc-500 italic">No activity yet.</p>
           ) : (
-            activities.map(a => (
+            recentActivities.map(a => (
               <div key={a.id} className="flex items-start gap-3 rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
                 <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
                   a.severity === 'success' ? 'bg-emerald-400' :
