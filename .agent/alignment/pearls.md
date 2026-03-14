@@ -59,14 +59,16 @@
 | `One repo = one agent = one client` | This is a deployable template. To spin up a new client: duplicate the entire repo. Each instance is fully independent — own vector store namespace, own config, own persona. Never try to serve multiple clients from one repo. | Orientation | When designing new features, considering adding a second client, or reusing any part of the repo | Hard Constraint |
 | `Template is content-agnostic` | The first use case was one specific engagement. The template works for any knowledge domain. Never hardcode domain-specific assumptions into the pipeline architecture. | Orientation | When building new features, structuring knowledge folders, or designing ingestion pipelines | Hard Constraint |
 | `Dashboard is backburner` | The localhost:8888 dashboard is use-case-specific and not the current focus. Do not refactor, extend, or improve it unless explicitly requested. | Orientation | Any time the dashboard comes up in conversation or a change to it seems logical | Strong Heuristic |
+| `Coverage metrics need eligible-only denominators` | Completeness metrics must use only items that are eligible for the measured attribute in their denominator — items that correctly lack the attribute because they've had no opportunity to acquire it must be excluded, or they generate permanent false alarms that mask real gaps. | Prevention | When designing any completeness, coverage, or progress metric that aggregates items with heterogeneous states | Strong Heuristic |
 
 **Metrics** *(updated at harvest)*
 
 | Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
 |-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
-| `One repo = one agent = one client` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
-| `Template is content-agnostic` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `One repo = one agent = one client` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
+| `Template is content-agnostic` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
 | `Dashboard is backburner` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
+| `Coverage metrics need eligible-only denominators` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
 
 ---
 
@@ -78,13 +80,17 @@
 |-------|-------|------|---------|------------|
 | `Grep does not satisfy Edit's read requirement` | Even with the exact line from a Grep result, the Edit tool rejects the call with "File has not been read yet." Always call Read explicitly on every file before any Edit — even in bulk rename operations, even when you already have the content. | Prevention | Before calling Edit on any file, especially immediately after a Grep search | Hard Constraint |
 | `Dev script may not be at repo root` | The dev server command and port may live in a subdirectory package.json (e.g., `web/dashboard`). Always search all package.json files for the dev script matching the detected port — never assume root has the dev script. | Prevention | When starting the dev server or running `npm run dev` during boot | Hard Constraint |
+| `Windows paths in .env use forward slashes` | File paths set as environment variable values must use forward slashes even on Windows — backslashes cause silent parse failures (wrong value returned, no error thrown), producing zero results with no diagnostic clue. | Prevention | When setting any file system path as a value in a .env or .env.local file on a Windows machine | Hard Constraint |
+| `Markdown tables: skip header AND separator` | When parsing markdown tables programmatically, skip both the separator row (`\|---\|`) AND the header row — separators match a clear regex pattern, but header rows are structurally identical to data rows and corrupt the first parsed record if not explicitly skipped. | Prevention | When writing any parser that extracts rows from markdown or similarly-formatted tables | Hard Constraint |
 
 **Metrics** *(updated at harvest)*
 
 | Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
 |-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
-| `Grep does not satisfy Edit's read requirement` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
-| `Dev script may not be at repo root` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 5 | 5 | 100% |
+| `Grep does not satisfy Edit's read requirement` | Established | (unknown) | 2026-09-14 | 2 | 2 | ? | ? | 100% |
+| `Dev script may not be at repo root` | Seed | 2026-03-14 | 2026-09-14 | 2 | 2 | 5 | 10 | 100% |
+| `Windows paths in .env use forward slashes` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
+| `Markdown tables: skip header AND separator` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 10 | 10 | 100% |
 
 ---
 
@@ -124,10 +130,10 @@
 
 | Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
 |-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
-| `Pearl value is Uses times Min/Use` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 30 | 0 | — |
-| `Min/Use is measured not estimated` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 20 | 0 | — |
-| `Every pearl needs an explicit Trigger` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 60 | 0 | — |
-| `Hit Rate exposes invisible failures` | Seed | 2026-03-14 | 2026-09-14 | 0 | 0 | 30 | 0 | — |
+| `Pearl value is Uses times Min/Use` | Confirmed | 2026-03-14 | 2026-09-14 | 1 | 1 | 30 | 30 | 100% |
+| `Min/Use is measured not estimated` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
+| `Every pearl needs an explicit Trigger` | Confirmed | 2026-03-14 | 2026-09-14 | 1 | 1 | 60 | 60 | 100% |
+| `Hit Rate exposes invisible failures` | Confirmed | 2026-03-14 | 2026-09-14 | 1 | 1 | 30 | 30 | 100% |
 | `Copied skills carry project residue` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 15 | 15 | 100% |
 
 ---
