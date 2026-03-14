@@ -3,39 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Pearl System — Persistent AI Memory That Gets Smarter Every Session</title>
+<title>The Pearl System — AI Memory That Gets Smarter Every Session</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
-
   :root {
-    --bg:        #030712;
-    --surface1:  #0f172a;
-    --surface2:  #1e293b;
-    --border:    #334155;
-    --border-dim:#1e293b;
-    --cyan:      #22d3ee;
-    --cyan-dim:  rgba(34,211,238,0.12);
-    --cyan-glow: rgba(34,211,238,0.25);
-    --purple:    #a855f7;
-    --purple-dim:rgba(168,85,247,0.12);
-    --gold:      #f59e0b;
-    --gold-dim:  rgba(245,158,11,0.12);
-    --green:     #22c55e;
-    --blue:      #3b82f6;
-    --violet:    #8b5cf6;
-    --red:       #ef4444;
-    --text:      #f1f5f9;
-    --text-dim:  #94a3b8;
-    --text-muted:#475569;
-    --seed-color:#22c55e;
-    --conf-color:#3b82f6;
-    --est-color: #a855f7;
+    --bg:          #030712;
+    --surface1:    #0f172a;
+    --surface2:    #1e293b;
+    --border:      #334155;
+    --border-dim:  #1e293b;
+    --cyan:        #22d3ee;
+    --cyan-dim:    rgba(34,211,238,0.12);
+    --cyan-glow:   rgba(34,211,238,0.25);
+    --purple:      #a855f7;
+    --purple-dim:  rgba(168,85,247,0.12);
+    --purple-glow: rgba(168,85,247,0.25);
+    --gold:        #f59e0b;
+    --gold-dim:    rgba(245,158,11,0.12);
+    --gold-glow:   rgba(245,158,11,0.25);
+    --green:       #22c55e;
+    --green-dim:   rgba(34,197,94,0.12);
+    --blue:        #3b82f6;
+    --blue-dim:    rgba(59,130,246,0.12);
+    --red:         #ef4444;
+    --red-dim:     rgba(239,68,68,0.12);
+    --text:        #f1f5f9;
+    --text-dim:    #94a3b8;
+    --text-muted:  #475569;
   }
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
   html { scroll-behavior: smooth; }
-
   body {
     font-family: 'Inter', sans-serif;
     background: var(--bg);
@@ -44,578 +44,836 @@
     overflow-x: hidden;
   }
 
+  /* ─── ANIMATIONS ─── */
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(1.5); }
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-8px); }
+  }
+  @keyframes shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { opacity: 0; }
+  .fade-up.visible { animation: fadeUp 0.6s ease forwards; }
+  .fade-up-delay-1.visible { animation-delay: 0.1s; }
+  .fade-up-delay-2.visible { animation-delay: 0.2s; }
+  .fade-up-delay-3.visible { animation-delay: 0.3s; }
+  .fade-up-delay-4.visible { animation-delay: 0.4s; }
+  .fade-up-delay-5.visible { animation-delay: 0.5s; }
+  .fade-up-delay-6.visible { animation-delay: 0.6s; }
+
   /* ─── NAV ─── */
   nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    background: rgba(3,7,18,0.85);
-    backdrop-filter: blur(12px);
+    position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+    background: rgba(3,7,18,0.90);
+    backdrop-filter: blur(16px) saturate(180%);
     border-bottom: 1px solid var(--border-dim);
     padding: 0 2rem;
     height: 56px;
     display: flex; align-items: center; justify-content: space-between;
   }
-  .nav-logo { font-weight: 700; font-size: 1rem; color: var(--cyan); letter-spacing: 0.05em; }
-  .nav-links { display: flex; gap: 2rem; list-style: none; }
-  .nav-links a { color: var(--text-dim); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.2s; }
+  .nav-logo {
+    font-weight: 800; font-size: 0.9rem; color: var(--cyan);
+    letter-spacing: 0.08em; text-decoration: none;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .nav-logo-diamond { color: var(--cyan); }
+  .nav-links { display: flex; align-items: center; gap: 1.75rem; list-style: none; }
+  .nav-links a {
+    color: var(--text-muted); text-decoration: none;
+    font-size: 0.8rem; font-weight: 500; transition: color 0.2s;
+    letter-spacing: 0.02em;
+  }
   .nav-links a:hover { color: var(--text); }
+  .nav-cta {
+    background: var(--gold); color: #000;
+    text-decoration: none; font-size: 0.8rem; font-weight: 700;
+    padding: 0.4rem 1rem; border-radius: 6px;
+    transition: background 0.2s, transform 0.15s;
+    letter-spacing: 0.02em; white-space: nowrap;
+  }
+  .nav-cta:hover { background: #fbbf24; transform: translateY(-1px); }
 
-  /* ─── SECTIONS ─── */
-  section { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
-  .full-width { max-width: none; padding: 6rem 2rem; }
-  .section-label { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cyan); margin-bottom: 1rem; }
-  h2 { font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 800; line-height: 1.2; margin-bottom: 1.25rem; }
-  h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 0.75rem; }
+  /* ─── LAYOUT ─── */
+  .section-wrap { padding: 6rem 2rem; max-width: 1100px; margin: 0 auto; }
+  .full-bleed { padding: 6rem 2rem; }
+  .full-bleed-inner { max-width: 1100px; margin: 0 auto; }
+  .divider { border: none; border-top: 1px solid var(--border-dim); margin: 0; }
+
+  .section-label {
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--cyan); margin-bottom: 1rem;
+  }
+  h2 {
+    font-size: clamp(1.75rem, 3.5vw, 2.6rem);
+    font-weight: 800; line-height: 1.15; margin-bottom: 1.25rem;
+  }
+  h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 0.6rem; }
   p { color: var(--text-dim); margin-bottom: 1rem; }
   p:last-child { margin-bottom: 0; }
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface2); border: 1px solid var(--border);
+    padding: 2px 7px; border-radius: 5px; font-size: 0.82em; color: var(--cyan);
+  }
+  .text-cyan   { color: var(--cyan); }
+  .text-purple { color: var(--purple); }
+  .text-gold   { color: var(--gold); }
+  .text-green  { color: var(--green); }
+  .text-blue   { color: var(--blue); }
+  .text-red    { color: var(--red); }
+  .text-muted  { color: var(--text-muted); }
 
   /* ─── HERO ─── */
   #hero {
     min-height: 100vh;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center;
-    padding: 6rem 2rem;
-    position: relative;
-    overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 7rem 2rem 5rem;
+    position: relative; overflow: hidden;
   }
   .hero-bg {
-    position: absolute; inset: 0;
+    position: absolute; inset: 0; pointer-events: none;
     background:
-      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(34,211,238,0.08) 0%, transparent 70%),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(168,85,247,0.06) 0%, transparent 60%);
+      radial-gradient(ellipse 80% 50% at 50% -5%,  rgba(34,211,238,0.09) 0%, transparent 65%),
+      radial-gradient(ellipse 50% 40% at 80% 90%,  rgba(168,85,247,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 30% at 10% 60%,  rgba(245,158,11,0.04) 0%, transparent 60%);
   }
   .hero-grid {
-    position: absolute; inset: 0; opacity: 0.03;
-    background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
-    background-size: 60px 60px;
+    position: absolute; inset: 0; opacity: 0.025; pointer-events: none;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
   .hero-badge {
     display: inline-flex; align-items: center; gap: 0.5rem;
     background: var(--cyan-dim); border: 1px solid var(--cyan-glow);
-    border-radius: 100px; padding: 0.375rem 1rem;
-    font-size: 0.8rem; font-weight: 600; color: var(--cyan);
-    letter-spacing: 0.05em; margin-bottom: 2rem;
+    border-radius: 100px; padding: 0.35rem 1rem;
+    font-size: 0.75rem; font-weight: 600; color: var(--cyan);
+    letter-spacing: 0.06em; margin-bottom: 2.5rem;
     position: relative; z-index: 1;
+    animation: fadeUp 0.5s ease 0.1s both;
   }
-  .hero-badge::before {
-    content: ''; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--cyan); display: inline-block;
-    animation: pulse 2s infinite;
+  .hero-badge-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan); animation: pulse 2s infinite;
   }
-  @keyframes pulse { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.5; transform:scale(1.4); } }
-
   .hero-title {
-    font-size: clamp(3rem, 7vw, 5.5rem);
+    font-size: clamp(2.8rem, 7vw, 5.5rem);
     font-weight: 900; line-height: 1.05;
     letter-spacing: -0.03em;
     position: relative; z-index: 1;
     margin-bottom: 1.5rem;
+    animation: fadeUp 0.5s ease 0.2s both;
   }
   .hero-title .gradient {
-    background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 100%);
+    background: linear-gradient(135deg, var(--cyan) 0%, var(--purple) 60%, var(--gold) 100%);
     -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
   }
   .hero-sub {
-    font-size: clamp(1.1rem, 2vw, 1.35rem); font-weight: 400;
+    font-size: clamp(1rem, 2vw, 1.3rem); font-weight: 400;
     color: var(--text-dim); max-width: 600px;
     position: relative; z-index: 1; margin-bottom: 3rem;
+    animation: fadeUp 0.5s ease 0.3s both;
   }
-  .hero-stats {
-    display: flex; gap: 3rem; justify-content: center;
-    position: relative; z-index: 1; flex-wrap: wrap;
+  .hero-ctas {
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    position: relative; z-index: 1; margin-bottom: 4rem;
+    animation: fadeUp 0.5s ease 0.4s both;
   }
-  .hero-stat { text-align: center; }
-  .hero-stat-num { font-size: 2rem; font-weight: 800; color: var(--cyan); display: block; }
-  .hero-stat-label { font-size: 0.8rem; color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; }
+  .btn-outline-cyan {
+    display: inline-block; text-decoration: none;
+    border: 1.5px solid var(--cyan); color: var(--cyan);
+    font-weight: 600; font-size: 0.9rem; padding: 0.65rem 1.5rem;
+    border-radius: 8px; transition: background 0.2s, transform 0.15s;
+  }
+  .btn-outline-cyan:hover { background: var(--cyan-dim); transform: translateY(-2px); }
+  .btn-gold {
+    display: inline-block; text-decoration: none;
+    background: var(--gold); color: #000;
+    font-weight: 700; font-size: 0.9rem; padding: 0.65rem 1.5rem;
+    border-radius: 8px; transition: background 0.2s, transform 0.15s;
+  }
+  .btn-gold:hover { background: #fbbf24; transform: translateY(-2px); }
+
+  .hero-stat-cards {
+    display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+    position: relative; z-index: 1;
+    animation: fadeUp 0.5s ease 0.5s both;
+  }
+  .stat-card {
+    background: var(--surface1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem 1.75rem;
+    text-align: center;
+    animation: float 4s ease-in-out infinite;
+  }
+  .stat-card:nth-child(2) { animation-delay: -1.3s; }
+  .stat-card:nth-child(3) { animation-delay: -2.6s; }
+  .stat-card-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem; font-weight: 700; color: var(--cyan);
+    display: block; line-height: 1;
+  }
+  .stat-card-num.gold  { color: var(--gold); }
+  .stat-card-num.green { color: var(--green); }
+  .stat-card-label {
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem;
+    font-weight: 500; letter-spacing: 0.04em; display: block;
+  }
 
   /* ─── PROBLEM ─── */
-  #problem { background: linear-gradient(180deg, var(--bg) 0%, var(--surface1) 50%, var(--bg) 100%); }
   .problem-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
   .problem-card {
     background: var(--surface1); border: 1px solid var(--border-dim);
-    border-radius: 12px; padding: 2rem;
+    border-radius: 14px; padding: 2rem;
     position: relative; overflow: hidden;
+    transition: transform 0.25s, border-color 0.25s;
   }
+  .problem-card:hover { transform: translateY(-4px); border-color: var(--red); }
   .problem-card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
     background: linear-gradient(90deg, var(--red), transparent);
   }
-  .problem-icon { font-size: 2rem; margin-bottom: 1rem; display: block; }
-  .problem-card h3 { color: var(--text); margin-bottom: 0.5rem; }
+  .problem-icon { font-size: 2rem; margin-bottom: 1.25rem; display: block; }
+  .problem-card h3 { color: var(--text); }
 
   /* ─── SOLUTION ─── */
-  .solution-intro { max-width: 700px; margin: 0 auto; text-align: center; }
-  .solution-intro h2 { color: var(--text); }
-  .solution-pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
+  .solution-intro { text-align: center; max-width: 680px; margin: 0 auto; }
+  .solution-pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
   .pillar {
     background: var(--surface1); border: 1px solid var(--border);
-    border-radius: 12px; padding: 2rem;
-    transition: border-color 0.3s, box-shadow 0.3s;
+    border-radius: 14px; padding: 2rem;
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.25s;
   }
-  .pillar:hover { border-color: var(--cyan); box-shadow: 0 0 20px var(--cyan-dim); }
-  .pillar-num { font-size: 0.75rem; font-weight: 700; color: var(--cyan); letter-spacing: 0.15em; margin-bottom: 0.75rem; text-transform: uppercase; }
-  .pillar h3 { color: var(--text); margin-bottom: 0.5rem; }
+  .pillar:hover { border-color: var(--cyan); box-shadow: 0 0 24px var(--cyan-dim); transform: translateY(-3px); }
+  .pillar-num { font-size: 0.7rem; font-weight: 700; color: var(--cyan); letter-spacing: 0.18em; margin-bottom: 0.75rem; text-transform: uppercase; }
+  .pillar h3 { color: var(--text); }
 
   /* ─── FEEDBACK LOOP ─── */
-  #loop { text-align: center; }
-  #loop .full-inner { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
-  .loop-diagram {
-    margin: 4rem auto 0; max-width: 900px;
+  .loop-visual { margin: 4rem auto 0; max-width: 960px; }
+  .loop-steps {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr;
+    align-items: center; gap: 0;
+  }
+  .loop-step {
+    background: var(--surface1); border-radius: 16px; padding: 1.75rem 1.5rem;
+    border: 1px solid var(--border); text-align: center;
+    transition: transform 0.25s;
     position: relative;
   }
-  .loop-phases {
-    display: grid; grid-template-columns: 1fr 80px 1fr 80px 1fr;
-    align-items: center; gap: 0; margin-bottom: 2rem;
+  .loop-step:hover { transform: translateY(-4px); }
+  .loop-step.boot     { border-top: 3px solid var(--cyan); }
+  .loop-step.session  { border-top: 3px solid var(--green); }
+  .loop-step.commit   { border-top: 3px solid var(--blue); }
+  .loop-step.harvest  { border-top: 3px solid var(--gold); }
+  .loop-step-icon { font-size: 1.75rem; display: block; margin-bottom: 0.75rem; }
+  .loop-step-label {
+    font-size: 0.65rem; font-weight: 700; letter-spacing: 0.15em;
+    text-transform: uppercase; margin-bottom: 0.5rem;
   }
-  .loop-phase {
-    background: var(--surface1); border-radius: 16px; padding: 2rem 1.5rem;
-    border: 1px solid var(--border); position: relative;
-    transition: border-color 0.3s, transform 0.3s;
-  }
-  .loop-phase:hover { transform: translateY(-4px); }
-  .loop-phase.boot  { border-top: 3px solid var(--cyan); }
-  .loop-phase.session { border-top: 3px solid var(--green); }
-  .loop-phase.harvest { border-top: 3px solid var(--gold); }
-  .loop-phase-icon { font-size: 2rem; display: block; margin-bottom: 0.75rem; }
-  .loop-phase-title { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.5rem; }
-  .loop-phase.boot .loop-phase-title { color: var(--cyan); }
-  .loop-phase.session .loop-phase-title { color: var(--green); }
-  .loop-phase.harvest .loop-phase-title { color: var(--gold); }
-  .loop-phase p { font-size: 0.8rem; line-height: 1.5; margin: 0; }
-  .loop-arrow { display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
-  .loop-arrow svg { width: 40px; }
-  .loop-db {
-    background: var(--surface2); border: 2px dashed var(--purple);
-    border-radius: 16px; padding: 1.5rem 2rem;
-    display: flex; align-items: center; justify-content: center; gap: 2rem;
-    margin-top: 2rem;
-    position: relative;
-  }
-  .loop-db::before {
-    content: 'pearls.md'; position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
-    background: var(--purple); color: white; font-size: 0.7rem; font-weight: 700;
-    letter-spacing: 0.1em; padding: 2px 10px; border-radius: 100px;
-    font-family: 'JetBrains Mono', monospace;
-  }
-  .loop-db-item { text-align: center; }
-  .loop-db-item span { display: block; font-size: 0.7rem; color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; }
-  .loop-db-item strong { font-size: 1.1rem; font-weight: 700; color: var(--purple); font-family: 'JetBrains Mono', monospace; }
-
-  .loop-arrows-outer {
-    display: flex; justify-content: space-between; align-items: center;
-    margin: 1rem 0; padding: 0 4rem;
-  }
-  .loop-arrow-label {
-    display: flex; flex-direction: column; align-items: center; gap: 4px;
-    font-size: 0.7rem; color: var(--text-muted); font-weight: 500;
-  }
-  .loop-arrow-label svg { width: 24px; }
-
-  /* ─── THREE PHASES DETAIL ─── */
-  .phases-accordion { margin-top: 3rem; display: flex; flex-direction: column; gap: 1rem; }
-  .phase-item {
-    border: 1px solid var(--border-dim); border-radius: 12px; overflow: hidden;
-  }
-  .phase-header {
-    display: flex; align-items: center; gap: 1rem; padding: 1.5rem;
-    cursor: pointer; user-select: none;
-    transition: background 0.2s;
-  }
-  .phase-header:hover { background: var(--surface1); }
-  .phase-num {
-    width: 40px; height: 40px; border-radius: 10px;
+  .loop-step.boot    .loop-step-label { color: var(--cyan); }
+  .loop-step.session .loop-step-label { color: var(--green); }
+  .loop-step.commit  .loop-step-label { color: var(--blue); }
+  .loop-step.harvest .loop-step-label { color: var(--gold); }
+  .loop-step p { font-size: 0.75rem; line-height: 1.5; margin: 0; }
+  .loop-connector {
     display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 1rem; flex-shrink: 0;
+    padding: 0 0.25rem;
   }
-  .boot-num  { background: rgba(34,211,238,0.15); color: var(--cyan); }
-  .session-num { background: rgba(34,197,94,0.15); color: var(--green); }
-  .harvest-num { background: rgba(245,158,11,0.15); color: var(--gold); }
-  .phase-header-text { flex: 1; }
-  .phase-header-text h3 { margin: 0; font-size: 1rem; }
-  .phase-header-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
-  .phase-body { padding: 0 1.5rem 1.5rem; border-top: 1px solid var(--border-dim); background: var(--surface1); }
-  .phase-steps { list-style: none; margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-  .phase-steps li {
+  .loop-connector svg { width: 36px; flex-shrink: 0; }
+  .loop-return {
+    margin-top: 2rem;
+    background: var(--surface2); border: 1.5px dashed var(--purple);
+    border-radius: 12px; padding: 1.25rem 2rem;
+    text-align: center;
+    font-size: 0.825rem; color: var(--purple); font-weight: 600;
+    display: flex; align-items: center; justify-content: center; gap: 0.75rem;
+  }
+  .loop-return span { color: var(--text-dim); font-weight: 400; }
+
+  /* ─── COMMANDS SECTION ─── */
+  #commands { background: var(--surface1); }
+  #commands-inner { max-width: 1100px; margin: 0 auto; padding: 6rem 2rem; }
+  .command-timeline {
+    display: grid;
+    grid-template-columns: 1fr 60px 1fr 60px 1fr;
+    align-items: start; gap: 0; margin-top: 4rem;
+  }
+  .cmd-phase-connector {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: flex-start; padding-top: 2.5rem; gap: 0;
+  }
+  .cmd-phase-connector svg { width: 36px; margin-top: 0; }
+  .cmd-phase {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+  }
+  .cmd-phase-header {
+    padding: 1.25rem 1.5rem;
+    display: flex; align-items: center; gap: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmd-phase.start  .cmd-phase-header { background: rgba(34,211,238,0.06); border-bottom-color: var(--border); }
+  .cmd-phase.during .cmd-phase-header { background: rgba(34,197,94,0.06); }
+  .cmd-phase.end    .cmd-phase-header { background: rgba(245,158,11,0.06); }
+  .cmd-phase-num {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 0.9rem; flex-shrink: 0;
+  }
+  .start  .cmd-phase-num { background: var(--cyan-dim); color: var(--cyan); }
+  .during .cmd-phase-num { background: var(--green-dim); color: var(--green); }
+  .end    .cmd-phase-num { background: var(--gold-dim);  color: var(--gold); }
+  .cmd-phase-title { font-weight: 700; font-size: 0.9rem; }
+  .start  .cmd-phase-title { color: var(--cyan); }
+  .during .cmd-phase-title { color: var(--green); }
+  .end    .cmd-phase-title { color: var(--gold); }
+  .cmd-phase-body { padding: 1.5rem; }
+
+  /* Terminal blocks */
+  .terminal {
+    background: #0d1117; border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin: 1rem 0;
+  }
+  .terminal-bar {
+    background: var(--surface2); padding: 0.5rem 1rem;
+    display: flex; align-items: center; gap: 0.4rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .terminal-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .terminal-dot.red   { background: #ef4444; }
+  .terminal-dot.gold  { background: #f59e0b; }
+  .terminal-dot.green { background: #22c55e; }
+  .terminal-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem; color: var(--text-muted); margin-left: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+  .terminal-body {
+    padding: 1.25rem 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem; line-height: 1.7;
+  }
+  .t-cmd   { color: var(--cyan); }
+  .t-comment { color: var(--text-muted); }
+  .t-prompt { color: var(--text-muted); user-select: none; }
+  .t-string { color: #a5d6ff; }
+  .t-symbol { color: var(--gold); }
+  .t-output { color: var(--text-dim); }
+  .t-invoc  { color: var(--green); }
+  .t-number { color: var(--purple); }
+
+  .cmd-bullet-list {
+    list-style: none; margin: 1rem 0 0; display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .cmd-bullet-list li {
+    font-size: 0.82rem; color: var(--text-dim);
+    display: flex; gap: 0.6rem; align-items: flex-start;
+    padding: 0.4rem 0; border-bottom: 1px solid var(--border-dim);
+  }
+  .cmd-bullet-list li:last-child { border-bottom: none; }
+  .cmd-bullet-list li::before {
+    content: '→'; color: var(--cyan); font-weight: 700;
+    font-family: 'JetBrains Mono', monospace; flex-shrink: 0; margin-top: 1px;
+  }
+  .cmd-note {
+    background: rgba(34,211,238,0.06); border: 1px solid rgba(34,211,238,0.15);
+    border-radius: 8px; padding: 0.75rem 1rem; margin-top: 1rem;
+    font-size: 0.8rem; color: var(--text-dim);
+  }
+  .cmd-note strong { color: var(--cyan); }
+  .cmd-note-gold {
+    background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.15);
+    border-radius: 8px; padding: 0.75rem 1rem; margin-top: 1rem;
+    font-size: 0.8rem; color: var(--text-dim);
+  }
+  .cmd-note-gold strong { color: var(--gold); }
+  .gate-list { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.75rem; }
+  .gate-item {
     display: flex; gap: 0.75rem; align-items: flex-start;
-    font-size: 0.875rem; color: var(--text-dim); padding: 0.5rem 0;
-    border-bottom: 1px solid var(--border-dim);
+    padding: 0.6rem 0.75rem; border-radius: 8px;
+    background: rgba(255,255,255,0.03); border: 1px solid var(--border-dim);
+    font-size: 0.78rem; color: var(--text-dim);
   }
-  .phase-steps li:last-child { border-bottom: none; }
-  .step-num { color: var(--cyan); font-weight: 700; font-size: 0.75rem; min-width: 24px; padding-top: 2px; font-family: 'JetBrains Mono', monospace; }
-  .step-num.g { color: var(--green); }
-  .step-num.gold { color: var(--gold); }
+  .gate-num {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; font-weight: 700;
+    color: var(--gold); flex-shrink: 0; min-width: 18px;
+  }
+  .gate-name { font-weight: 600; color: var(--text); margin-right: 0.4rem; }
+  .gate-fail { color: var(--text-muted); font-style: italic; }
+
+  .step-sequence { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 1rem; }
+  .step-seq-item {
+    display: flex; gap: 1rem; align-items: flex-start;
+  }
+  .step-seq-num {
+    width: 28px; height: 28px; border-radius: 8px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.8rem;
+    background: var(--gold-dim); color: var(--gold); border: 1px solid var(--gold-glow);
+    margin-top: 2px;
+  }
+  .step-seq-content { flex: 1; }
+  .step-seq-content h4 { font-size: 0.875rem; font-weight: 700; color: var(--text); margin-bottom: 0.4rem; }
+  .step-seq-content p  { font-size: 0.8rem; margin-bottom: 0; }
+
+  .harvest-steps-list {
+    list-style: none; display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.75rem;
+  }
+  .harvest-steps-list li {
+    font-size: 0.78rem; color: var(--text-dim);
+    display: flex; gap: 0.5rem; align-items: flex-start;
+  }
+  .harvest-steps-list li .hstep-num {
+    color: var(--gold); font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem; font-weight: 700; min-width: 20px; margin-top: 2px;
+  }
+
+  .harvest-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem; }
+  .harvest-choice {
+    background: var(--surface1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 1.25rem;
+    transition: border-color 0.25s;
+  }
+  .harvest-choice:hover { border-color: var(--gold); }
+  .harvest-choice-cmd {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.05rem; font-weight: 700;
+    color: var(--gold); display: block; margin-bottom: 0.5rem;
+  }
+  .harvest-choice p { font-size: 0.8rem; margin: 0; }
+
+  /* ─── DASHBOARD ─── */
+  .dashboard-mockup {
+    background: var(--surface1); border: 1px solid var(--border);
+    border-radius: 20px; overflow: hidden; margin-top: 3rem;
+    box-shadow: 0 20px 80px rgba(0,0,0,0.5);
+  }
+  .dash-topbar {
+    background: var(--surface2); padding: 0.85rem 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .dash-url {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
+    color: var(--text-muted); background: var(--bg);
+    border: 1px solid var(--border); padding: 4px 12px; border-radius: 6px;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .dash-url-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
+  .dash-title { font-weight: 700; font-size: 0.875rem; color: var(--text); }
+  .dash-health { display: flex; align-items: center; gap: 0.5rem; }
+  .dash-health-label { font-size: 0.7rem; color: var(--text-muted); font-weight: 500; }
+  .dash-health-score {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700;
+    color: var(--gold);
+  }
+  .dash-body { padding: 1.5rem; }
+  .dash-stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .dash-stat {
+    background: var(--bg); border: 1px solid var(--border-dim);
+    border-radius: 10px; padding: 1rem 1.25rem;
+  }
+  .dash-stat-val {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 700;
+    display: block; line-height: 1; margin-bottom: 0.35rem;
+  }
+  .dash-stat-key { font-size: 0.68rem; color: var(--text-muted); font-weight: 500; letter-spacing: 0.04em; }
+  .dash-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; }
+  .dash-tab {
+    padding: 0.6rem 1.25rem; font-size: 0.8rem; font-weight: 600;
+    color: var(--text-muted); border-bottom: 2px solid transparent;
+    cursor: default; transition: color 0.2s;
+  }
+  .dash-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+  .dash-table-row {
+    display: grid; grid-template-columns: 1fr 100px 80px 90px;
+    gap: 1rem; padding: 0.65rem 0;
+    border-bottom: 1px solid var(--border-dim); align-items: center;
+    font-size: 0.78rem;
+  }
+  .dash-table-row.header { color: var(--text-muted); font-weight: 600; font-size: 0.7rem; letter-spacing: 0.05em; }
+  .dash-pearl-name { color: var(--text); font-weight: 500; }
+  .dash-badge {
+    display: inline-block; font-size: 0.65rem; font-weight: 700; padding: 2px 7px;
+    border-radius: 100px; letter-spacing: 0.05em;
+  }
+  .badge-est  { background: var(--purple-dim); color: var(--purple); }
+  .badge-conf { background: var(--blue-dim); color: var(--blue); }
+  .badge-seed { background: var(--green-dim); color: var(--green); }
+  .dash-saved { color: var(--gold); font-family: 'JetBrains Mono', monospace; font-weight: 600; }
+  .dash-hit   { color: var(--green); font-family: 'JetBrains Mono', monospace; }
+  .dash-stale-banner {
+    background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+    border-radius: 8px; padding: 0.65rem 1rem; margin-bottom: 1rem;
+    font-size: 0.78rem; color: var(--gold); display: flex; align-items: center; gap: 0.5rem;
+  }
+  .dash-feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; margin-top: 3rem; }
+  .dash-feature {
+    background: var(--surface1); border: 1px solid var(--border-dim);
+    border-radius: 10px; padding: 1.25rem;
+    display: flex; gap: 0.75rem; align-items: flex-start;
+    transition: border-color 0.25s, transform 0.2s;
+  }
+  .dash-feature:hover { border-color: var(--cyan); transform: translateY(-2px); }
+  .dash-feature-icon { font-size: 1.25rem; flex-shrink: 0; }
+  .dash-feature-text h4 { font-size: 0.875rem; color: var(--text); margin-bottom: 0.3rem; }
+  .dash-feature-text p  { font-size: 0.78rem; margin: 0; }
+
+  /* ─── PHASES DETAIL ─── */
+  .phases-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
+  .phase-card {
+    background: var(--surface1); border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    transition: transform 0.25s;
+  }
+  .phase-card:hover { transform: translateY(-4px); }
+  .phase-card-header {
+    padding: 1.5rem;
+    display: flex; align-items: center; gap: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-card.boot    .phase-card-header { background: rgba(34,211,238,0.05); border-top: 3px solid var(--cyan); }
+  .phase-card.session .phase-card-header { background: rgba(34,197,94,0.05);  border-top: 3px solid var(--green); }
+  .phase-card.harvest .phase-card-header { background: rgba(245,158,11,0.05); border-top: 3px solid var(--gold); }
+  .phase-card-icon { font-size: 1.75rem; }
+  .phase-card-title { font-weight: 800; font-size: 1rem; }
+  .phase-card.boot    .phase-card-title { color: var(--cyan); }
+  .phase-card.session .phase-card-title { color: var(--green); }
+  .phase-card.harvest .phase-card-title { color: var(--gold); }
+  .phase-card-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+  .phase-card-body { padding: 1.5rem; }
+  .phase-step-list { list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+  .phase-step-list li {
+    display: flex; gap: 0.6rem; font-size: 0.8rem;
+    color: var(--text-dim); padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border-dim); align-items: flex-start;
+  }
+  .phase-step-list li:last-child { border-bottom: none; }
+  .pstep-arrow { color: var(--cyan); font-weight: 700; flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; margin-top: 2px; }
+  .pstep-arrow.g    { color: var(--green); }
+  .pstep-arrow.gold { color: var(--gold); }
 
   /* ─── THE MATH ─── */
-  #math { background: var(--surface1); }
-  #math-inner { max-width: 1100px; margin: 0 auto; padding: 6rem 2rem; }
   .formula-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; margin-top: 3rem; }
   .formula-card {
     background: var(--bg); border: 1px solid var(--border);
-    border-radius: 16px; padding: 2.5rem;
+    border-radius: 16px; padding: 2.25rem;
     position: relative; overflow: hidden;
+    transition: transform 0.25s, border-color 0.25s;
   }
-  .formula-card::after {
-    content: ''; position: absolute; bottom: 0; right: 0;
-    width: 120px; height: 120px; border-radius: 50%;
-    background: radial-gradient(circle, var(--cyan-dim), transparent);
+  .formula-card:hover { transform: translateY(-4px); border-color: var(--cyan); }
+  .formula-card.purple:hover { border-color: var(--purple); }
+  .formula-card.gold:hover   { border-color: var(--gold); }
+  .formula-card.green:hover  { border-color: var(--green); }
+  .formula-card-glow {
+    position: absolute; bottom: 0; right: 0;
+    width: 140px; height: 140px; border-radius: 50%;
     pointer-events: none;
+    background: radial-gradient(circle, var(--cyan-dim), transparent);
   }
-  .formula-card.purple-card::after { background: radial-gradient(circle, var(--purple-dim), transparent); }
-  .formula-label { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1rem; }
+  .formula-card.purple .formula-card-glow { background: radial-gradient(circle, var(--purple-dim), transparent); }
+  .formula-card.gold   .formula-card-glow { background: radial-gradient(circle, var(--gold-dim), transparent); }
+  .formula-card.green  .formula-card-glow { background: radial-gradient(circle, var(--green-dim), transparent); }
+  .formula-label { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.75rem; }
   .formula {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 1.4rem; font-weight: 600; color: var(--text);
+    font-size: 1.25rem; font-weight: 600;
     background: var(--surface1); border: 1px solid var(--border);
-    border-radius: 10px; padding: 1rem 1.5rem;
-    margin: 1rem 0; letter-spacing: -0.02em;
+    border-radius: 10px; padding: 0.875rem 1.25rem;
+    margin: 0.75rem 0; letter-spacing: -0.01em;
   }
-  .formula .var-cyan { color: var(--cyan); }
-  .formula .var-purple { color: var(--purple); }
-  .formula .var-gold { color: var(--gold); }
-  .formula-example { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem; }
-  .formula-insight { font-size: 0.875rem; color: var(--text-dim); margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-dim); }
+  .formula .vc { color: var(--cyan); }
+  .formula .vp { color: var(--purple); }
+  .formula .vg { color: var(--gold); }
+  .formula .vn { color: var(--green); }
+  .formula-card h3 { font-size: 1.05rem; margin-bottom: 0.25rem; }
+  .formula-insight {
+    font-size: 0.82rem; color: var(--text-dim); margin-top: 1.25rem;
+    padding-top: 1rem; border-top: 1px solid var(--border-dim);
+    margin-bottom: 0;
+  }
 
-  /* ─── PEARL ANATOMY ─── */
-  .anatomy-container { display: grid; grid-template-columns: 1fr 1.2fr; gap: 3rem; align-items: start; margin-top: 3rem; }
-  .anatomy-card {
+  /* ─── ANATOMY ─── */
+  .anatomy-section { margin-top: 3rem; display: flex; flex-direction: column; gap: 2.5rem; }
+  .anatomy-table-wrap {
     background: var(--surface1); border: 1px solid var(--border);
     border-radius: 16px; overflow: hidden;
   }
-  .anatomy-card-header {
-    background: var(--surface2); padding: 1rem 1.5rem;
+  .anatomy-table-header {
+    background: var(--surface2); padding: 0.875rem 1.5rem;
     border-bottom: 1px solid var(--border);
-    font-family: 'JetBrains Mono', monospace; font-size: 0.8rem;
-    color: var(--text-dim); display: flex; align-items: center; gap: 0.5rem;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  .anatomy-card-header span { color: var(--cyan); }
-  .anatomy-field {
-    display: flex; gap: 1rem; padding: 0.875rem 1.5rem;
+  .anatomy-table-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; color: var(--text-dim);
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+  .anatomy-table-title span { color: var(--cyan); }
+  .anatomy-badge-guidance { background: var(--cyan-dim); color: var(--cyan); font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 100px; letter-spacing: 0.06em; }
+  .anatomy-badge-metrics  { background: var(--purple-dim); color: var(--purple); font-size: 0.65rem; font-weight: 700; padding: 2px 8px; border-radius: 100px; letter-spacing: 0.06em; }
+  .anatomy-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .anatomy-table th {
+    text-align: left; padding: 0.75rem 1rem;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.68rem;
+    color: var(--text-muted); font-weight: 600; letter-spacing: 0.08em;
     border-bottom: 1px solid var(--border-dim);
-    transition: background 0.2s;
-    cursor: default;
+    background: rgba(255,255,255,0.02);
   }
-  .anatomy-field:hover { background: var(--surface2); }
-  .anatomy-field:last-child { border-bottom: none; }
-  .anatomy-field-name {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-    font-weight: 600; color: var(--cyan); min-width: 110px;
+  .anatomy-table td {
+    padding: 1rem;
+    color: var(--text-dim);
+    vertical-align: top;
+    border-bottom: 1px solid var(--border-dim);
   }
-  .anatomy-field-val { font-size: 0.8rem; color: var(--text-dim); }
-  .anatomy-legend { display: flex; flex-direction: column; gap: 1rem; }
-  .anatomy-legend-item {
+  .anatomy-table tr:last-child td { border-bottom: none; }
+  .anatomy-table td:first-child { color: var(--cyan); font-family: 'JetBrains Mono', monospace; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+  .anatomy-table td.confidence-hc { color: var(--red); font-weight: 600; }
+  .anatomy-table td.confidence-sh { color: var(--gold); font-weight: 600; }
+  .anatomy-table td.maturity-est  { color: var(--purple); font-weight: 600; }
+  .anatomy-callouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+  .callout-card {
     background: var(--surface1); border: 1px solid var(--border-dim);
     border-radius: 10px; padding: 1rem 1.25rem;
-    display: flex; gap: 1rem; align-items: flex-start;
+    display: flex; gap: 0.75rem;
   }
-  .field-tag {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.7rem;
-    font-weight: 700; padding: 2px 8px; border-radius: 5px;
-    min-width: 90px; text-align: center; flex-shrink: 0; margin-top: 2px;
+  .callout-tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; font-weight: 700;
+    padding: 3px 8px; border-radius: 5px; height: fit-content;
+    flex-shrink: 0; margin-top: 2px; min-width: 80px; text-align: center;
   }
-  .tag-guidance { background: rgba(34,211,238,0.15); color: var(--cyan); }
-  .tag-metrics  { background: rgba(168,85,247,0.15); color: var(--purple); }
-  .field-desc { font-size: 0.8rem; color: var(--text-dim); }
-  .field-desc strong { color: var(--text); font-weight: 600; }
+  .callout-tag.guidance { background: var(--cyan-dim); color: var(--cyan); }
+  .callout-tag.metrics  { background: var(--purple-dim); color: var(--purple); }
+  .callout-tag.both     { background: var(--gold-dim); color: var(--gold); }
+  .callout-text h4 { font-size: 0.82rem; color: var(--text); margin-bottom: 0.25rem; }
+  .callout-text p  { font-size: 0.77rem; margin: 0; }
 
   /* ─── LIFECYCLE ─── */
   .lifecycle-track {
-    display: flex; align-items: stretch; gap: 0; margin-top: 3rem;
-    border: 1px solid var(--border); border-radius: 16px; overflow: hidden;
+    display: flex; align-items: stretch; border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-top: 3rem;
   }
-  .lifecycle-stage { flex: 1; padding: 2rem 1.5rem; position: relative; }
+  .lifecycle-stage { flex: 1; padding: 2rem 1.5rem; }
   .lifecycle-stage + .lifecycle-stage { border-left: 1px solid var(--border); }
-  .lifecycle-stage.seed     { background: rgba(34,197,94,0.05); }
-  .lifecycle-stage.confirmed  { background: rgba(59,130,246,0.05); }
-  .lifecycle-stage.established { background: rgba(168,85,247,0.05); }
-  .lifecycle-stage.retired  { background: rgba(71,85,105,0.05); }
-  .stage-dot {
-    width: 12px; height: 12px; border-radius: 50%; margin-bottom: 1rem;
-  }
-  .seed .stage-dot     { background: var(--seed-color); box-shadow: 0 0 8px var(--seed-color); }
-  .confirmed .stage-dot  { background: var(--conf-color); box-shadow: 0 0 8px var(--conf-color); }
-  .established .stage-dot { background: var(--est-color); box-shadow: 0 0 8px var(--est-color); }
-  .retired .stage-dot   { background: var(--text-muted); }
-  .stage-name { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.5rem; }
-  .seed .stage-name     { color: var(--seed-color); }
-  .confirmed .stage-name  { color: var(--conf-color); }
-  .established .stage-name { color: var(--est-color); }
-  .retired .stage-name  { color: var(--text-muted); }
+  .lifecycle-stage.seed        { background: rgba(34,197,94,0.04); }
+  .lifecycle-stage.confirmed   { background: rgba(59,130,246,0.04); }
+  .lifecycle-stage.established { background: rgba(168,85,247,0.04); }
+  .lifecycle-stage.retired     { background: rgba(71,85,105,0.04); }
+  .stage-dot { width: 12px; height: 12px; border-radius: 50%; margin-bottom: 1rem; }
+  .seed        .stage-dot { background: var(--green);     box-shadow: 0 0 8px var(--green); }
+  .confirmed   .stage-dot { background: var(--blue);      box-shadow: 0 0 8px var(--blue); }
+  .established .stage-dot { background: var(--purple);    box-shadow: 0 0 8px var(--purple); }
+  .retired     .stage-dot { background: var(--text-muted); }
+  .stage-name { font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 0.5rem; }
+  .seed        .stage-name { color: var(--green); }
+  .confirmed   .stage-name { color: var(--blue); }
+  .established .stage-name { color: var(--purple); }
+  .retired     .stage-name { color: var(--text-muted); }
   .stage-threshold {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-    padding: 4px 8px; border-radius: 6px; margin-bottom: 0.75rem; display: inline-block;
+    font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+    padding: 3px 8px; border-radius: 6px; margin-bottom: 0.75rem; display: inline-block;
   }
-  .seed .stage-threshold     { background: rgba(34,197,94,0.15); color: var(--seed-color); }
-  .confirmed .stage-threshold  { background: rgba(59,130,246,0.15); color: var(--conf-color); }
-  .established .stage-threshold { background: rgba(168,85,247,0.15); color: var(--est-color); }
-  .retired .stage-threshold   { background: rgba(71,85,105,0.15); color: var(--text-muted); }
-  .lifecycle-stage p { font-size: 0.8rem; }
+  .seed        .stage-threshold { background: var(--green-dim);  color: var(--green); }
+  .confirmed   .stage-threshold { background: var(--blue-dim);   color: var(--blue); }
+  .established .stage-threshold { background: var(--purple-dim); color: var(--purple); }
+  .retired     .stage-threshold { background: rgba(71,85,105,0.15); color: var(--text-muted); }
+  .lifecycle-stage p { font-size: 0.78rem; }
+  .prune-rule {
+    margin-top: 2rem;
+    background: rgba(239,68,68,0.06); border: 1.5px solid rgba(239,68,68,0.2);
+    border-radius: 12px; padding: 1.5rem;
+  }
+  .prune-rule h4 { font-size: 0.9rem; color: var(--red); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+  .prune-rule p { font-size: 0.82rem; margin: 0; }
 
-  /* ─── PEARL TYPES ─── */
+  /* ─── TYPES ─── */
   .types-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
   .type-card {
     background: var(--surface1); border: 1px solid var(--border-dim);
     border-radius: 14px; padding: 2rem;
+    transition: border-color 0.25s, transform 0.25s;
   }
+  .type-card.prevention:hover  { border-color: #f87171; transform: translateY(-4px); }
+  .type-card.orientation:hover { border-color: var(--cyan); transform: translateY(-4px); }
+  .type-card.diagnostic:hover  { border-color: var(--gold); transform: translateY(-4px); }
   .type-badge {
-    display: inline-block; font-size: 0.7rem; font-weight: 700;
+    display: inline-block; font-size: 0.68rem; font-weight: 700;
     letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 4px 10px; border-radius: 100px; margin-bottom: 1rem;
+    padding: 4px 10px; border-radius: 100px; margin-bottom: 1.25rem;
   }
-  .prevention-badge { background: rgba(239,68,68,0.15); color: #f87171; }
-  .orientation-badge { background: rgba(34,211,238,0.15); color: var(--cyan); }
-  .diagnostic-badge { background: rgba(245,158,11,0.15); color: var(--gold); }
+  .prevention-badge  { background: rgba(239,68,68,0.15);  color: #f87171; }
+  .orientation-badge { background: var(--cyan-dim);        color: var(--cyan); }
+  .diagnostic-badge  { background: var(--gold-dim);        color: var(--gold); }
+  .type-card h3 { color: var(--text); }
   .type-card p { font-size: 0.875rem; }
-  .type-metric { font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-dim); font-weight: 600; }
+  .type-measure {
+    font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;
+    padding-top: 1rem; border-top: 1px solid var(--border-dim);
+    font-weight: 500;
+  }
 
-  /* ─── NOVEL ─── */
+  /* ─── WHY DIFFERENT ─── */
   .novel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-top: 3rem; }
   .novel-card {
     background: var(--surface1); border: 1px solid var(--border-dim);
     border-radius: 12px; padding: 1.75rem;
     display: flex; gap: 1rem;
+    transition: border-color 0.25s, transform 0.2s;
   }
+  .novel-card:hover { border-color: var(--cyan); transform: translateY(-3px); }
   .novel-icon { font-size: 1.5rem; flex-shrink: 0; margin-top: 2px; }
-  .novel-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
-  .novel-card p { font-size: 0.825rem; }
+  .novel-card h3 { font-size: 1rem; color: var(--text); margin-bottom: 0.4rem; }
+  .novel-card p  { font-size: 0.825rem; }
 
   /* ─── UNIVERSAL ─── */
-  .universal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-top: 3rem; }
+  .universal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1rem; margin-top: 3rem; }
   .universal-card {
     background: var(--surface1); border: 1px solid var(--border-dim);
-    border-radius: 12px; padding: 1.25rem;
-    text-align: center; transition: border-color 0.3s;
+    border-radius: 12px; padding: 1.5rem 1.25rem;
+    text-align: center; transition: border-color 0.25s, transform 0.2s;
   }
-  .universal-card:hover { border-color: var(--cyan); }
-  .universal-card .icon { font-size: 1.75rem; display: block; margin-bottom: 0.5rem; }
+  .universal-card:hover { border-color: var(--cyan); transform: translateY(-3px); }
+  .universal-card .icon { font-size: 1.75rem; display: block; margin-bottom: 0.6rem; }
   .universal-card p { font-size: 0.75rem; margin: 0; font-weight: 500; color: var(--text-dim); }
-
-  /* ─── HOW TO USE ─── */
-  .howto-steps { display: flex; flex-direction: column; gap: 1px; margin-top: 3rem; }
-  .howto-step {
-    display: flex; gap: 2rem; align-items: flex-start;
-    background: var(--surface1); padding: 1.75rem 2rem;
-    border: 1px solid var(--border-dim); border-radius: 0;
-    transition: background 0.2s;
-  }
-  .howto-step:first-child { border-radius: 12px 12px 0 0; }
-  .howto-step:last-child { border-radius: 0 0 12px 12px; }
-  .howto-step:hover { background: var(--surface2); }
-  .howto-step-num {
-    width: 44px; height: 44px; border-radius: 12px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    font-weight: 800; font-size: 1.1rem;
-    background: var(--cyan-dim); color: var(--cyan);
-    border: 1px solid var(--cyan-glow);
-  }
-  .howto-step h3 { font-size: 1rem; margin-bottom: 0.4rem; }
-  .howto-step p { font-size: 0.875rem; }
-  code {
-    font-family: 'JetBrains Mono', monospace;
-    background: var(--surface2); border: 1px solid var(--border);
-    padding: 2px 6px; border-radius: 5px; font-size: 0.85em; color: var(--cyan);
-  }
 
   /* ─── VISION ─── */
   #vision {
     text-align: center;
-    background: radial-gradient(ellipse 100% 60% at 50% 50%, rgba(168,85,247,0.06) 0%, transparent 70%);
+    background: radial-gradient(ellipse 90% 60% at 50% 50%, rgba(168,85,247,0.06) 0%, transparent 70%);
   }
-  .vision-quote {
-    font-size: clamp(1.25rem, 2.5vw, 1.75rem); font-weight: 600; font-style: italic;
-    color: var(--text); max-width: 780px; margin: 2rem auto;
-    line-height: 1.6; position: relative;
+  .vision-body { max-width: 680px; margin: 2rem auto 0; }
+  .vision-body p { font-size: 1.05rem; line-height: 1.8; color: var(--text-dim); }
+  .vision-closer {
+    margin-top: 2.5rem; padding-top: 2.5rem; border-top: 1px solid var(--border-dim);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem; font-weight: 600; color: var(--purple);
+    font-style: italic;
   }
-  .vision-quote::before { content: '\201C'; color: var(--purple); font-size: 4rem; line-height: 0; vertical-align: -0.5em; margin-right: 0.25em; }
 
   /* ─── FOOTER ─── */
   footer {
-    border-top: 1px solid var(--border-dim); padding: 2rem;
-    text-align: center; color: var(--text-muted); font-size: 0.8rem;
+    border-top: 1px solid var(--border-dim);
+    padding: 2rem 2rem;
+    text-align: center; color: var(--text-muted); font-size: 0.78rem;
     max-width: 1100px; margin: 0 auto;
   }
 
-  /* ─── UTILS ─── */
-  .text-cyan   { color: var(--cyan); }
-  .text-purple { color: var(--purple); }
-  .text-gold   { color: var(--gold); }
-  .text-green  { color: var(--green); }
-  .divider { border: none; border-top: 1px solid var(--border-dim); margin: 0; }
-  .tag {
-    display: inline-block; font-size: 0.7rem; font-weight: 700;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    padding: 3px 8px; border-radius: 6px;
-    background: var(--cyan-dim); color: var(--cyan);
-    font-family: 'JetBrains Mono', monospace;
-  }
-
-  @media (max-width: 768px) {
-    .loop-phases { grid-template-columns: 1fr; }
-    .loop-arrow { transform: rotate(90deg); }
-    .anatomy-container { grid-template-columns: 1fr; }
+  /* ─── RESPONSIVE ─── */
+  @media (max-width: 900px) {
+    .loop-steps { grid-template-columns: 1fr; }
+    .loop-connector { transform: rotate(90deg); }
+    .command-timeline { grid-template-columns: 1fr; }
+    .cmd-phase-connector { flex-direction: row; transform: rotate(90deg); margin: 0.5rem auto; }
     .lifecycle-track { flex-direction: column; }
     .lifecycle-stage + .lifecycle-stage { border-left: none; border-top: 1px solid var(--border); }
+    .anatomy-table { font-size: 0.72rem; }
+    .anatomy-table th, .anatomy-table td { padding: 0.6rem 0.75rem; }
+    .harvest-choice-grid { grid-template-columns: 1fr; }
+    .dash-table-row { grid-template-columns: 1fr 80px; }
+    .dash-table-row .dash-hit, .dash-table-row .dash-saved:last-child { display: none; }
+  }
+  @media (max-width: 700px) {
     .nav-links { display: none; }
+    .nav-cta { display: none; }
+    .hero-title { font-size: 2.4rem; }
   }
 </style>
 </head>
 <body>
 
-<!-- NAV -->
+<!-- ═══ NAV ═══ -->
 <nav>
-  <div class="nav-logo">⚡ THE PEARL SYSTEM</div>
+  <a href="#hero" class="nav-logo">
+    <span class="nav-logo-diamond">◆</span> Pearl System
+  </a>
   <ul class="nav-links">
-    <li><a href="#problem">The Problem</a></li>
+    <li><a href="#problem">Problem</a></li>
+    <li><a href="#solution">Solution</a></li>
     <li><a href="#loop">How It Works</a></li>
-    <li><a href="#math">The Math</a></li>
-    <li><a href="#anatomy">Pearl Anatomy</a></li>
-    <li><a href="#howto">Get Started</a></li>
+    <li><a href="#commands">Commands</a></li>
+    <li><a href="#dashboard">Dashboard</a></li>
+    <li><a href="#anatomy">Anatomy</a></li>
+    <li><a href="#library">Library</a></li>
+    <li><a href="#novel">Why Different</a></li>
+    <li><a href="#vision">Vision</a></li>
   </ul>
+  <a href="#commands" class="nav-cta">Get Started →</a>
 </nav>
 
-<!-- HERO -->
+<!-- ═══ HERO ═══ -->
 <section id="hero">
   <div class="hero-bg"></div>
   <div class="hero-grid"></div>
-  <div class="hero-badge">Universal · Domain-Agnostic · Self-Improving</div>
+
+  <div class="hero-badge">
+    <div class="hero-badge-dot"></div>
+    Persistent · Self-Improving · Domain-Agnostic
+  </div>
+
   <h1 class="hero-title">
-    The Pearl System<br>
-    <span class="gradient">AI Memory That Earns Its Keep</span>
+    The AI that actually learns<br>
+    <span class="gradient">from its own mistakes.</span>
   </h1>
+
   <p class="hero-sub">
-    Every AI session starts cold. Mistakes repeat forever. Knowledge dies the moment the session ends.
-    The Pearl System changes all of that — permanently.
+    A closed-loop memory engine that distills hard-won knowledge into pearls of wisdom —
+    loading them at session start, logging every fire, measuring every minute saved.
   </p>
-  <div class="hero-stats">
-    <div class="hero-stat">
-      <span class="hero-stat-num">3</span>
-      <span class="hero-stat-label">Phase Feedback Loop</span>
+
+  <div class="hero-ctas">
+    <a href="#loop" class="btn-outline-cyan">See How It Works ↓</a>
+    <a href="#dashboard" class="btn-gold">View the Dashboard →</a>
+  </div>
+
+  <div class="hero-stat-cards">
+    <div class="stat-card">
+      <span class="stat-card-num">17</span>
+      <span class="stat-card-label">pearls active</span>
     </div>
-    <div class="hero-stat">
-      <span class="hero-stat-num">0</span>
-      <span class="hero-stat-label">Infrastructure Required</span>
+    <div class="stat-card">
+      <span class="stat-card-num gold">160+</span>
+      <span class="stat-card-label">min saved this session</span>
     </div>
-    <div class="hero-stat">
-      <span class="hero-stat-num">∞</span>
-      <span class="hero-stat-label">Sessions Improved</span>
-    </div>
-    <div class="hero-stat">
-      <span class="hero-stat-num">Any</span>
-      <span class="hero-stat-label">Domain. Any Field.</span>
+    <div class="stat-card">
+      <span class="stat-card-num green">100%</span>
+      <span class="stat-card-label">hit rate</span>
     </div>
   </div>
 </section>
 
 <hr class="divider">
 
-<!-- PROBLEM -->
-<section id="problem">
-  <div class="section-label">The Problem</div>
-  <h2>Every AI session starts from zero.<br><span class="text-cyan">And the mistakes never stop repeating.</span></h2>
-  <p style="max-width:600px;">You've experienced it. You fixed a bug that took three hours. Next week the same bug appeared in a different project. The AI had no memory of the first fix. You paid the same cost twice.</p>
+<!-- ═══ PROBLEM ═══ -->
+<div id="problem">
+  <div class="section-wrap">
+    <div class="section-label fade-up">The Problem</div>
+    <h2 class="fade-up fade-up-delay-1">Every session starts from zero.<br><span class="text-red">The mistakes never stop repeating.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:600px;">You fixed a bug that took three hours. Next session, the same bug appeared. The AI had no memory of the first fix. You paid the same cost twice. Then a third time. Then a fourth.</p>
 
-  <div class="problem-grid">
-    <div class="problem-card">
-      <span class="problem-icon">🧊</span>
-      <h3>Sessions Start Cold</h3>
-      <p>Every conversation begins with zero context about what went wrong before, what took hours to figure out, or what rules were painfully learned. The AI knows nothing from previous sessions.</p>
-    </div>
-    <div class="problem-card">
-      <span class="problem-icon">🔁</span>
-      <h3>Mistakes Repeat Forever</h3>
-      <p>Without memory, every mistake is brand new. The same debugging cycles happen in session after session. The same wrong paths get explored. The same hours get spent.</p>
-    </div>
-    <div class="problem-card">
-      <span class="problem-icon">💨</span>
-      <h3>Knowledge Evaporates</h3>
-      <p>Every hard-won insight disappears when the session ends. There is no accumulation. No compounding. No institutional memory. Each session is as naive as the first.</p>
-    </div>
-  </div>
-</section>
-
-<hr class="divider">
-
-<!-- SOLUTION -->
-<section id="solution">
-  <div class="solution-intro">
-    <div class="section-label">The Solution</div>
-    <h2>A closed-loop memory engine that<br><span class="text-purple">gets smarter every session.</span></h2>
-    <p>The Pearl System gives AI agents something they have never had before: persistent, measured, self-pruning institutional memory. Built from real pain. Valued by real time saved.</p>
-  </div>
-
-  <div class="solution-pillars">
-    <div class="pillar">
-      <div class="pillar-num">PILLAR 01</div>
-      <h3>Wisdom, Not Notes</h3>
-      <p>Pearls are not summaries or documentation. They are distilled principles extracted from real failure — each one proven by the debugging time it cost before it was captured.</p>
-    </div>
-    <div class="pillar">
-      <div class="pillar-num">PILLAR 02</div>
-      <h3>Value Is Measured</h3>
-      <p>Every pearl has a monetary-equivalent score: the minutes of work it saves every time it fires. Pearls earn their place in the library or they get pruned. There is no dead weight.</p>
-    </div>
-    <div class="pillar">
-      <div class="pillar-num">PILLAR 03</div>
-      <h3>The Loop Never Stops</h3>
-      <p>Boot loads wisdom. Sessions apply it and record what happens. Harvest measures the results and extracts new wisdom. Each cycle makes the next one better. Compounding returns.</p>
-    </div>
-  </div>
-</section>
-
-<hr class="divider">
-
-<!-- FEEDBACK LOOP -->
-<div id="loop" class="full-width" style="background: var(--surface1);">
-  <div class="full-inner">
-    <div class="section-label" style="text-align:center;">The Feedback Loop</div>
-    <h2 style="text-align:center; max-width:600px; margin:0 auto 1rem;">Three phases.<br><span class="text-cyan">One continuous cycle.</span></h2>
-    <p style="text-align:center; max-width:500px; margin:0 auto;">The system runs itself. Boot loads the library. The session applies it. Harvest updates the library. Repeat forever.</p>
-
-    <div class="loop-diagram">
-      <div class="loop-phases">
-        <div class="loop-phase boot">
-          <span class="loop-phase-icon">🚀</span>
-          <div class="loop-phase-title">Boot</div>
-          <p>Load pearls into context. Arm triggers. Activate invocation tracking. Report alignment status.</p>
-        </div>
-        <div class="loop-arrow">
-          <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 10 H30 M22 3 L30 10 L22 17" stroke="#22d3ee" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="loop-phase session">
-          <span class="loop-phase-icon">⚡</span>
-          <div class="loop-phase-title">Active Session</div>
-          <p>Work normally. When a pearl fires, log it. When a problem emerges, solve it. Record everything.</p>
-        </div>
-        <div class="loop-arrow">
-          <svg viewBox="0 0 40 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M0 10 H30 M22 3 L30 10 L22 17" stroke="#f59e0b" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-        </div>
-        <div class="loop-phase harvest">
-          <span class="loop-phase-icon">🌾</span>
-          <div class="loop-phase-title">Harvest</div>
-          <p>Measure time costs. Update invocation counts. Extract new pearls. Promote, prune, retire.</p>
-        </div>
+    <div class="problem-grid">
+      <div class="problem-card fade-up fade-up-delay-2">
+        <span class="problem-icon">🧊</span>
+        <h3>Sessions Start Cold</h3>
+        <p>AI loads with zero context about what you've already learned the hard way. Every tool quirk, every debugging dead-end, every non-obvious rule — gone at session end. Rediscovered at your expense.</p>
       </div>
-
-      <div class="loop-arrows-outer">
-        <div class="loop-arrow-label">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 19V5M5 12l7-7 7 7" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/></svg>
-          pearls loaded at boot
-        </div>
-        <div class="loop-arrow-label">
-          <svg viewBox="0 0 24 24" fill="none"><path d="M12 5v14M19 12l-7 7-7-7" stroke="#a855f7" stroke-width="2" stroke-linecap="round"/></svg>
-          metrics written at harvest
-        </div>
+      <div class="problem-card fade-up fade-up-delay-3">
+        <span class="problem-icon">🔁</span>
+        <h3>Mistakes Repeat Forever</h3>
+        <p>Same debugging cycles. Same wrong assumptions. Same 2-hour rabbit holes. Without persistent memory, there is no institutional knowledge — only endless rediscovery.</p>
       </div>
-
-      <div class="loop-db">
-        <div class="loop-db-item"><strong>Pearl</strong><span>title + rule</span></div>
-        <div class="loop-db-item"><strong>Trigger</strong><span>when to fire</span></div>
-        <div class="loop-db-item"><strong>Uses</strong><span>invocation count</span></div>
-        <div class="loop-db-item"><strong>Min/Use</strong><span>time saved per fire</span></div>
-        <div class="loop-db-item"><strong>Total Saved</strong><span>Uses × Min/Use</span></div>
-        <div class="loop-db-item"><strong>Hit Rate</strong><span>Uses / Opportunities</span></div>
+      <div class="problem-card fade-up fade-up-delay-4">
+        <span class="problem-icon">💨</span>
+        <h3>Knowledge Evaporates</h3>
+        <p>You fix it once. Three sessions later you're fixing it again. Nothing sticks. There is no accumulation, no compounding, no return on time invested. Each session is as naive as the first.</p>
       </div>
     </div>
   </div>
@@ -623,135 +881,418 @@
 
 <hr class="divider">
 
-<!-- THREE PHASES DETAIL -->
-<section id="phases">
-  <div class="section-label">Phase Breakdown</div>
-  <h2>What happens in each phase.</h2>
-  <p>Every step has a purpose. Nothing is bureaucracy.</p>
-
-  <div class="phases-accordion">
-
-    <div class="phase-item">
-      <div class="phase-header">
-        <div class="phase-num boot-num">01</div>
-        <div class="phase-header-text">
-          <h3>Boot — Session Alignment</h3>
-          <div class="phase-header-sub">Runs once at the start of every session. Takes about 30 seconds.</div>
-        </div>
+<!-- ═══ SOLUTION ═══ -->
+<div id="solution">
+  <div class="section-wrap">
+    <div class="solution-intro">
+      <div class="section-label fade-up">The Solution</div>
+      <h2 class="fade-up fade-up-delay-1">A closed-loop memory engine that<br><span class="text-purple">gets smarter every session.</span></h2>
+      <p class="fade-up fade-up-delay-2">The Pearl System gives AI agents something they have never had before: persistent, measured, self-pruning institutional memory. Built from real pain. Valued by real time saved.</p>
+    </div>
+    <div class="solution-pillars">
+      <div class="pillar fade-up fade-up-delay-2">
+        <div class="pillar-num">PILLAR 01</div>
+        <h3>Wisdom, Not Notes</h3>
+        <p>Distilled universal rules, not raw notes. The 3-gate quality test ensures only pain-tested, non-obvious, transferable knowledge survives. A pearl that passes the gates is a pearl worth loading forever.</p>
       </div>
-      <div class="phase-body">
-        <ul class="phase-steps">
-          <li><span class="step-num">→</span> Pull latest changes from git so the pearl library is current</li>
-          <li><span class="step-num">→</span> Detect project name, dev port, dev server directory, and memory path</li>
-          <li><span class="step-num">→</span> Start the dev server from the correct directory (not assumed to be root)</li>
-          <li><span class="step-num">→</span> Load only the <strong>Guidance tables</strong> from pearls.md — Hard Constraints first, then Heuristics, then Patterns</li>
-          <li><span class="step-num">→</span> Flag any pearls past their Review By date</li>
-          <li><span class="step-num">→</span> Activate ⚡ invocation tracking — triggers are armed</li>
-          <li><span class="step-num">→</span> Load session memory and CLAUDE.md project context</li>
-          <li><span class="step-num">→</span> Check harvest staleness — warn if overdue</li>
-          <li><span class="step-num">→</span> Report alignment status: pearls loaded, confidence breakdown, unvalued count</li>
-        </ul>
+      <div class="pillar fade-up fade-up-delay-3">
+        <div class="pillar-num">PILLAR 02</div>
+        <h3>Value Is Measured</h3>
+        <p>Every pearl has a price tag: <code>Total Saved = Uses × Min/Use</code>. A pearl invoked once that saves 8 hours (480 min) outranks one invoked 100 times saving 2 minutes each (200 min total). Frequency is not value.</p>
+      </div>
+      <div class="pillar fade-up fade-up-delay-4">
+        <div class="pillar-num">PILLAR 03</div>
+        <h3>The Loop Never Stops</h3>
+        <p>Boot loads pearls → session applies them → harvest measures and distills → library matures. Each cycle makes the next one better. Compounding returns. The library is the proof.</p>
       </div>
     </div>
+  </div>
+</div>
 
-    <div class="phase-item">
-      <div class="phase-header">
-        <div class="phase-num session-num">02</div>
-        <div class="phase-header-text">
-          <h3>Active Session — Wisdom in Action</h3>
-          <div class="phase-header-sub">Runs continuously throughout the session. Invisible when working well.</div>
+<hr class="divider">
+
+<!-- ═══ FEEDBACK LOOP DIAGRAM ═══ -->
+<div id="loop" class="full-bleed" style="background: var(--surface1);">
+  <div class="full-bleed-inner">
+    <div class="section-label fade-up" style="text-align:center;">The Feedback Loop</div>
+    <h2 class="fade-up fade-up-delay-1" style="text-align:center; max-width:560px; margin:0 auto 1rem;">Four phases.<br><span class="text-cyan">One continuous cycle.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="text-align:center; max-width:520px; margin:0 auto;">The system runs itself. Boot loads the library. The session applies it. Commit saves your work. Harvest updates the library. Repeat forever.</p>
+
+    <div class="loop-visual fade-up fade-up-delay-2">
+      <div class="loop-steps">
+        <!-- BOOT -->
+        <div class="loop-step boot">
+          <span class="loop-step-icon">🚀</span>
+          <div class="loop-step-label">Boot</div>
+          <p>Load 17 pearls. Arm triggers. Start invocation tracking.</p>
+        </div>
+        <!-- → -->
+        <div class="loop-connector">
+          <svg viewBox="0 0 36 20" fill="none"><path d="M0 10 H26 M18 3 L26 10 L18 17" stroke="#22d3ee" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <!-- SESSION -->
+        <div class="loop-step session">
+          <span class="loop-step-icon">⚡</span>
+          <div class="loop-step-label">Session</div>
+          <p>Work. Log ⚡ invocations. Problems get prevented.</p>
+        </div>
+        <!-- → -->
+        <div class="loop-connector">
+          <svg viewBox="0 0 36 20" fill="none"><path d="M0 10 H26 M18 3 L26 10 L18 17" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <!-- COMMIT -->
+        <div class="loop-step commit">
+          <span class="loop-step-icon">💾</span>
+          <div class="loop-step-label">Commit</div>
+          <p>git add + git commit your session's work first.</p>
+        </div>
+        <!-- → -->
+        <div class="loop-connector">
+          <svg viewBox="0 0 36 20" fill="none"><path d="M0 10 H26 M18 3 L26 10 L18 17" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <!-- HARVEST -->
+        <div class="loop-step harvest">
+          <span class="loop-step-icon">🌾</span>
+          <div class="loop-step-label">Harvest</div>
+          <p>/wisdom-harvest — Scan → Measure → Write → Commit → Push</p>
         </div>
       </div>
-      <div class="phase-body">
-        <ul class="phase-steps">
-          <li><span class="step-num g">→</span> Before any substantial operation: briefly state which loaded pearls are relevant</li>
-          <li><span class="step-num g">→</span> When a pearl's trigger condition is detected: consciously evaluate whether it applies</li>
-          <li><span class="step-num g">→</span> When a pearl prevents a mistake: log <code>⚡ Pearl invoked: "[Title]" — [what was avoided]</code></li>
-          <li><span class="step-num g">→</span> When a pearl was evaluated but didn't apply: note "Pearl '[Title]' considered — not applicable here"</li>
-          <li><span class="step-num g">→</span> In long sessions (1+ hour): re-state Hard Constraint pearls before high-risk operations</li>
-          <li><span class="step-num g">→</span> When problems arise: solve them normally — the timestamps are being recorded automatically</li>
-        </ul>
+
+      <div class="loop-return fade-up fade-up-delay-3">
+        ↩ Library grows. Next session is smarter.
+        <span>Each cycle adds pearls, updates metrics, and promotes the library's maturity.</span>
       </div>
     </div>
+  </div>
+</div>
 
-    <div class="phase-item">
-      <div class="phase-header">
-        <div class="phase-num harvest-num">03</div>
-        <div class="phase-header-text">
-          <h3>Harvest — Measure, Distill, Update</h3>
-          <div class="phase-header-sub">Runs at session end when significant work occurred. Takes 5–10 minutes.</div>
+<hr class="divider">
+
+<!-- ═══ COMMANDS — THE CRITICAL NEW SECTION ═══ -->
+<div id="commands">
+  <div id="commands-inner">
+    <div class="section-label fade-up">Exact Command Sequence</div>
+    <h2 class="fade-up fade-up-delay-1">The exact sequence. Every session.<br><span class="text-gold">No guesswork.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:580px;">Three moments. Four commands. The whole system. Run these in order, every session, and the library takes care of itself.</p>
+
+    <div class="command-timeline">
+
+      <!-- PHASE 1: SESSION START -->
+      <div class="cmd-phase start fade-up fade-up-delay-2">
+        <div class="cmd-phase-header">
+          <div class="cmd-phase-num">1</div>
+          <div>
+            <div class="cmd-phase-title">Session Start</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Run once. Every session. Takes ~30 seconds.</div>
+          </div>
+        </div>
+        <div class="cmd-phase-body">
+          <div class="terminal">
+            <div class="terminal-bar">
+              <div class="terminal-dot red"></div>
+              <div class="terminal-dot gold"></div>
+              <div class="terminal-dot green"></div>
+              <span class="terminal-label">claude code cli</span>
+            </div>
+            <div class="terminal-body">
+              <span class="t-prompt">$ </span><span class="t-cmd">/boot</span>
+            </div>
+          </div>
+          <p style="font-size:0.8rem; margin-bottom:0.75rem;">What it does:</p>
+          <ul class="cmd-bullet-list">
+            <li>Pulls latest changes from git (library is always current)</li>
+            <li>Reads <code>.agent/alignment/pearls.md</code> — loads all Guidance tables into active memory</li>
+            <li>Groups pearls by confidence: Hard Constraints first</li>
+            <li>Flags any pearls past their Review By date</li>
+            <li>Starts the dev server if not already running</li>
+            <li>Fires the boot canary: <code>[BOOTED] N pearls loaded...</code></li>
+            <li>Invocation tracking ACTIVE — ⚡ logs enabled</li>
+          </ul>
         </div>
       </div>
-      <div class="phase-body">
-        <ul class="phase-steps">
-          <li><span class="step-num gold">→</span> Scan all ⚡ invocation logs — increment Uses, recalculate Total Saved = Uses × Min/Use</li>
-          <li><span class="step-num gold">→</span> Retrospective scan: for each loaded pearl, did its trigger arise? Log unlogged opportunities</li>
-          <li><span class="step-num gold">→</span> Recalculate Hit Rate = Uses / Opportunities for every pearl</li>
-          <li><span class="step-num gold">→</span> For unvalued pearls (Min/Use = ?): ask user to estimate time cost, then backfill</li>
-          <li><span class="step-num gold">→</span> Promote maturity: Seed → Confirmed at 30 min saved, Confirmed → Established at 120 min saved</li>
-          <li><span class="step-num gold">→</span> Flag pearls past Review By date — user validates, extends, or retires</li>
-          <li><span class="step-num gold">→</span> Find problem cycles in the session: ATTEMPT → FAILURE → SOLUTION</li>
-          <li><span class="step-num gold">→</span> Measure elapsed time from timestamps — this is Min/Use for any new pearl</li>
-          <li><span class="step-num gold">→</span> Run 3-gate test: Non-obvious · Pain-tested · Transferable</li>
-          <li><span class="step-num gold">→</span> Check for patterns across pearls — propose meta-pearls if 3+ share a root</li>
-          <li><span class="step-num gold">→</span> Flag pruning candidates: Seed + Total Saved &lt; 15 min + Age &gt; 60 days</li>
-          <li><span class="step-num gold">→</span> Commit and push updated pearls.md</li>
-        </ul>
+
+      <!-- CONNECTOR -->
+      <div class="cmd-phase-connector fade-up fade-up-delay-3">
+        <svg viewBox="0 0 20 40" fill="none"><path d="M10 0 V30 M3 22 L10 30 L17 22" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+
+      <!-- PHASE 2: DURING THE SESSION -->
+      <div class="cmd-phase during fade-up fade-up-delay-3">
+        <div class="cmd-phase-header">
+          <div class="cmd-phase-num">2</div>
+          <div>
+            <div class="cmd-phase-title">During the Session</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Log invocations as they happen.</div>
+          </div>
+        </div>
+        <div class="cmd-phase-body">
+          <p style="font-size:0.8rem;">When a pearl prevents a mistake or shapes a decision, the agent writes this exact format as text output in the Claude Code conversation:</p>
+          <div class="terminal">
+            <div class="terminal-bar">
+              <div class="terminal-dot red"></div>
+              <div class="terminal-dot gold"></div>
+              <div class="terminal-dot green"></div>
+              <span class="terminal-label">agent output — written to the conversation</span>
+            </div>
+            <div class="terminal-body">
+<span class="t-invoc">⚡ Pearl invoked: <span class="t-string">"Pearl Title"</span></span>
+<span class="t-comment">   — I was about to [dangerous action].</span>
+<span class="t-comment">   Instead: [what the pearl says to do].</span>
+            </div>
+          </div>
+          <div class="cmd-note">
+            <strong>No special command required.</strong> The ⚡ line is just text output from the agent. At harvest, /wisdom-harvest scans the conversation for these lines to increment Uses counters and calculate Total Saved from the timestamps around them.
+          </div>
+          <div class="cmd-note" style="margin-top:0.75rem; background: rgba(168,85,247,0.06); border-color: rgba(168,85,247,0.2);">
+            <strong style="color:var(--purple);">Retrospective Opportunity Scan:</strong> Even unlogged applications get captured. At harvest, the agent checks every pearl's Trigger condition against the full session — silent protections get credit too.
+          </div>
+        </div>
+      </div>
+
+      <!-- CONNECTOR -->
+      <div class="cmd-phase-connector fade-up fade-up-delay-4">
+        <svg viewBox="0 0 20 40" fill="none"><path d="M10 0 V30 M3 22 L10 30 L17 22" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+
+      <!-- PHASE 3: SESSION END -->
+      <div class="cmd-phase end fade-up fade-up-delay-4">
+        <div class="cmd-phase-header">
+          <div class="cmd-phase-num">3</div>
+          <div>
+            <div class="cmd-phase-title">Session End</div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">Commit your work first. Then harvest.</div>
+          </div>
+        </div>
+        <div class="cmd-phase-body">
+          <div class="step-sequence">
+            <div class="step-seq-item">
+              <div class="step-seq-num">1</div>
+              <div class="step-seq-content">
+                <h4>Commit your work</h4>
+                <div class="terminal">
+                  <div class="terminal-bar">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot gold"></div>
+                    <div class="terminal-dot green"></div>
+                    <span class="terminal-label">git</span>
+                  </div>
+                  <div class="terminal-body">
+<span class="t-prompt">$ </span><span class="t-cmd">git add</span> <span class="t-string">&lt;your changed files&gt;</span>
+<span class="t-prompt">$ </span><span class="t-cmd">git commit</span> <span class="t-symbol">-m</span> <span class="t-string">"description of what you built"</span>
+                  </div>
+                </div>
+                <div class="cmd-note-gold">
+                  <strong>Commit your actual work BEFORE harvest.</strong> These are separate commits with separate purposes. Harvest creates its own commit for pearls.md.
+                </div>
+              </div>
+            </div>
+
+            <div class="step-seq-item">
+              <div class="step-seq-num">2</div>
+              <div class="step-seq-content">
+                <h4>Run the harvest</h4>
+                <div class="terminal">
+                  <div class="terminal-bar">
+                    <div class="terminal-dot red"></div>
+                    <div class="terminal-dot gold"></div>
+                    <div class="terminal-dot green"></div>
+                    <span class="terminal-label">claude code cli</span>
+                  </div>
+                  <div class="terminal-body">
+<span class="t-prompt">$ </span><span class="t-cmd">/wisdom-harvest</span>
+<span class="t-comment">   # or /harvest for shorter sessions</span>
+                  </div>
+                </div>
+                <p style="font-size:0.8rem; margin-top:0.75rem; margin-bottom:0.5rem;">What <code>/wisdom-harvest</code> does automatically:</p>
+                <ul class="harvest-steps-list">
+                  <li><span class="hstep-num">01</span>Scans session for ⚡ invocation logs → increments Uses → recalculates Total Saved</li>
+                  <li><span class="hstep-num">02</span>Runs Retrospective Opportunity Scan on all pearl triggers</li>
+                  <li><span class="hstep-num">03</span>Extracts problem cycles (attempt → failure → solution patterns)</li>
+                  <li><span class="hstep-num">04</span>Measures elapsed time from conversation timestamps (Min/Use = measurement, not estimate)</li>
+                  <li><span class="hstep-num">05</span>Runs 3-Gate Quality Test on every candidate — all three gates required:
+                    <div class="gate-list">
+                      <div class="gate-item"><span class="gate-num">G1</span><span><span class="gate-name">Non-obvious</span> Would a capable practitioner get this wrong by default? <span class="gate-fail">Fail: any competent person already knows this.</span></span></div>
+                      <div class="gate-item"><span class="gate-num">G2</span><span><span class="gate-name">Pain-tested</span> Did violating this cost measurable work time? <span class="gate-fail">Fail: fix took under 30 seconds. Auto-pass if measured time ≥ 30 min.</span></span></div>
+                      <div class="gate-item"><span class="gate-num">G3</span><span><span class="gate-name">Transferable</span> Does this apply across 3+ meaningfully different contexts? <span class="gate-fail">Fail: only useful in one narrow scenario. Waived if measured time ≥ 4 hours.</span></span></div>
+                    </div>
+                  </li>
+                  <li><span class="hstep-num">06</span>Writes survivors to <code>.agent/alignment/pearls.md</code> with full two-table format</li>
+                  <li><span class="hstep-num">07</span>Promotes maturity: Seed → Confirmed → Established</li>
+                  <li><span class="hstep-num">08</span><code>git add .agent/alignment/pearls.md</code> → <code>git commit "harvest: N new pearls..."</code> → <code>git push</code></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="step-seq-item">
+              <div class="step-seq-num">3</div>
+              <div class="step-seq-content">
+                <h4>Done. Library updated.</h4>
+                <p style="font-size:0.8rem;">Next session, <code>/boot</code> will load everything you just learned. The cycle continues.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end command-timeline -->
+
+    <!-- HARVEST CHOICE -->
+    <div style="margin-top:3rem;" class="fade-up">
+      <div class="section-label" style="margin-bottom:0.75rem;">When to use which harvest</div>
+      <div class="harvest-choice-grid">
+        <div class="harvest-choice">
+          <span class="harvest-choice-cmd">/harvest</span>
+          <p>Quick harvest. Shorter sessions, few problem cycles. Same 19-step protocol, less ceremony. Use when the session was focused and you doubt new pearls emerged.</p>
+        </div>
+        <div class="harvest-choice">
+          <span class="harvest-choice-cmd">/wisdom-harvest</span>
+          <p>Full harvest. Deep sessions, multiple debugging cycles, new pearls likely. The comprehensive version. When in doubt, use this one — thoroughness is the point.</p>
+        </div>
       </div>
     </div>
 
   </div>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- THE MATH -->
-<div id="math" class="full-width">
-  <div id="math-inner">
-    <div class="section-label">The Math</div>
-    <h2>Two formulas that make the whole system work.</h2>
-    <p>Simple, precise, and impossible to game. Value is earned, not assigned.</p>
+<!-- ═══ DASHBOARD ═══ -->
+<div id="dashboard">
+  <div class="section-wrap">
+    <div class="section-label fade-up">The Alignment Dashboard</div>
+    <h2 class="fade-up fade-up-delay-1">A live dashboard that sees your library<br><span class="text-cyan">the way you never could.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:580px;"><code>localhost:7777</code> — Always running. Always current. Polls <code>.agent/alignment/pearls.md</code> every 10 seconds and surfaces patterns invisible in raw markdown.</p>
 
-    <div class="formula-grid">
-      <div class="formula-card">
-        <div class="formula-label">Pearl Value Formula</div>
-        <div class="formula">
-          <span class="var-cyan">Total Saved</span> =<br>
-          <span class="var-gold">Uses</span> × <span class="var-purple">Min/Use</span>
+    <!-- Mock Dashboard -->
+    <div class="dashboard-mockup fade-up fade-up-delay-3">
+      <div class="dash-topbar">
+        <div class="dash-url">
+          <div class="dash-url-dot"></div>
+          localhost:7777
         </div>
-        <div class="formula-example">
-          Example: A pearl invoked 3 times that saves 120 min each time = <strong style="color:var(--cyan)">360 min saved</strong>
-        </div>
-        <div class="formula-insight">
-          <strong style="color:var(--text)">Why this matters:</strong> A pearl invoked once that prevents an 8-hour disaster scores 480. A pearl invoked 50 times saving 2 minutes each scores 100. Rare, high-impact pearls are 5× more valuable — and the system knows it.
+        <div class="dash-title">Pearl Alignment Dashboard</div>
+        <div class="dash-health">
+          <span class="dash-health-label">Health Score</span>
+          <span class="dash-health-score">79</span>
         </div>
       </div>
-
-      <div class="formula-card purple-card">
-        <div class="formula-label">Pearl Effectiveness Formula</div>
-        <div class="formula">
-          <span class="var-purple">Hit Rate</span> =<br>
-          <span class="var-gold">Uses</span> ÷ <span class="var-cyan">Opportunities</span>
+      <div class="dash-body">
+        <div class="dash-stale-banner">
+          ⚠ Last harvest: 2 days ago — consider running /wisdom-harvest
         </div>
-        <div class="formula-example">
-          Example: Pearl fired 3 times out of 10 sessions where it should have fired = <strong style="color:var(--purple)">30% Hit Rate</strong>
+        <div class="dash-stats-row">
+          <div class="dash-stat">
+            <span class="dash-stat-val" style="color:var(--cyan);">17</span>
+            <div class="dash-stat-key">Pearls</div>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-val" style="color:var(--green);">20m</span>
+            <div class="dash-stat-key">Confirmed Saved</div>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-val" style="color:var(--purple);">~10h</span>
+            <div class="dash-stat-key">Potential Value</div>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-val" style="color:var(--gold);">100%</span>
+            <div class="dash-stat-key">Hit Rate (n=3)</div>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-val" style="color:var(--red);">14</span>
+            <div class="dash-stat-key">Hard Constraints</div>
+          </div>
+          <div class="dash-stat">
+            <span class="dash-stat-val" style="color:var(--text-muted);">1</span>
+            <div class="dash-stat-key">Needs Valuation</div>
+          </div>
         </div>
-        <div class="formula-insight">
-          <strong style="color:var(--text)">Why this matters:</strong> A pearl with Uses = 3 looks active. But if the trigger arose 30 times and it only fired 3 times, it's failing 90% of the time. Hit Rate reveals pearls that need better triggers or clearer wording — not pruning.
+        <div class="dash-tabs">
+          <div class="dash-tab active">Explorer</div>
+          <div class="dash-tab">Leaderboard</div>
+          <div class="dash-tab">Analytics</div>
+        </div>
+        <div class="dash-table-row header">
+          <span>Pearl</span>
+          <span>Maturity</span>
+          <span>Total Saved</span>
+          <span>Hit Rate</span>
+        </div>
+        <div class="dash-table-row">
+          <span class="dash-pearl-name">Grep does not satisfy Edit's read requirement</span>
+          <span><span class="dash-badge badge-est">Established</span></span>
+          <span class="dash-saved">?</span>
+          <span class="dash-hit">100%</span>
+        </div>
+        <div class="dash-table-row">
+          <span class="dash-pearl-name">Always quote file paths with spaces</span>
+          <span><span class="dash-badge badge-conf">Confirmed</span></span>
+          <span class="dash-saved">45m</span>
+          <span class="dash-hit">100%</span>
+        </div>
+        <div class="dash-table-row">
+          <span class="dash-pearl-name">Dev server: start from correct sub-directory</span>
+          <span><span class="dash-badge badge-seed">Seed</span></span>
+          <span class="dash-saved">—</span>
+          <span class="dash-hit">idle</span>
         </div>
       </div>
+    </div>
 
-      <div class="formula-card" style="border-color: var(--gold); box-shadow: 0 0 30px rgba(245,158,11,0.05);">
-        <div class="formula-label">Where Min/Use Comes From</div>
-        <div class="formula" style="font-size:1rem; line-height:1.6;">
-          <span class="var-gold">Min/Use</span> =<br>
-          T<span style="font-size:0.7em;">fixed</span> − T<span style="font-size:0.7em;">problem arose</span>
+    <div class="dash-feature-grid" style="margin-top:3rem;">
+      <div class="dash-feature fade-up">
+        <div class="dash-feature-icon">🔄</div>
+        <div class="dash-feature-text">
+          <h4>Real-time polling</h4>
+          <p>Reads <code>pearls.md</code> live every 10 seconds. No reload needed.</p>
         </div>
-        <div class="formula-example">
-          Timestamps from the actual session. Not a guess — a measurement.
+      </div>
+      <div class="dash-feature fade-up fade-up-delay-1">
+        <div class="dash-feature-icon">🏥</div>
+        <div class="dash-feature-text">
+          <h4>Health Score</h4>
+          <p>Composite of maturity, valuation coverage, hit rate, and prune cleanliness. 0–100.</p>
         </div>
-        <div class="formula-insight">
-          <strong style="color:var(--text)">The key insight:</strong> The debugging session that creates a pearl already contains its value. Start the clock when the problem first appears. Stop it when the solution is confirmed. That elapsed time IS the exact cost — and therefore the exact future savings per invocation.
+      </div>
+      <div class="dash-feature fade-up fade-up-delay-2">
+        <div class="dash-feature-icon">🏆</div>
+        <div class="dash-feature-text">
+          <h4>Leaderboard</h4>
+          <p>Rankings by total saved, potential value, and hit rate — not just invocation count.</p>
+        </div>
+      </div>
+      <div class="dash-feature fade-up fade-up-delay-3">
+        <div class="dash-feature-icon">📊</div>
+        <div class="dash-feature-text">
+          <h4>Analytics tab</h4>
+          <p>Type/confidence breakdown, invocation coverage, value analysis, trend lines.</p>
+        </div>
+      </div>
+      <div class="dash-feature fade-up">
+        <div class="dash-feature-icon">🎯</div>
+        <div class="dash-feature-text">
+          <h4>Hit Rate Clarity</h4>
+          <p>"idle" (no opportunity yet, normal) vs active percentage. A low rate = wording problem.</p>
+        </div>
+      </div>
+      <div class="dash-feature fade-up fade-up-delay-1">
+        <div class="dash-feature-icon">⚠️</div>
+        <div class="dash-feature-text">
+          <h4>Harvest Staleness Banner</h4>
+          <p>Shows days since last <code>/harvest</code> commit. Nudges before the library drifts.</p>
+        </div>
+      </div>
+      <div class="dash-feature fade-up fade-up-delay-2">
+        <div class="dash-feature-icon">🔍</div>
+        <div class="dash-feature-text">
+          <h4>Pearl Explorer</h4>
+          <p>Search, filter by type or confidence, sort by value or maturity. Full two-table view per pearl.</p>
+        </div>
+      </div>
+      <div class="dash-feature fade-up fade-up-delay-3">
+        <div class="dash-feature-icon">🌱</div>
+        <div class="dash-feature-text">
+          <h4>Prune Candidates</h4>
+          <p>Flags Seed pearls with low saves and age over 60 days. Presented for human review, never auto-deleted.</p>
         </div>
       </div>
     </div>
@@ -760,314 +1301,477 @@
 
 <hr class="divider">
 
-<!-- PEARL ANATOMY -->
-<section id="anatomy">
-  <div class="section-label">Pearl Anatomy</div>
-  <h2>What a pearl looks like inside.</h2>
-  <p>Every pearl has two parts: a <strong style="color:var(--cyan)">Guidance record</strong> loaded at boot, and a <strong style="color:var(--purple)">Metrics record</strong> updated at harvest.</p>
+<!-- ═══ PHASE BREAKDOWN ═══ -->
+<div id="phases" style="background:var(--surface1);">
+  <div class="section-wrap">
+    <div class="section-label fade-up">Phase Breakdown</div>
+    <h2 class="fade-up fade-up-delay-1">What happens in each phase.<br><span class="text-cyan">Every step has a purpose.</span></h2>
 
-  <div class="anatomy-container">
-    <div>
-      <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em;">GUIDANCE TABLE — read at boot</p>
-      <div class="anatomy-card">
-        <div class="anatomy-card-header">⚡ <span>Never touch the agent core files</span></div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Notes</div>
-          <div class="anatomy-field-val">Even trivial renames risk silent pipeline breaks. Any edit requires explicit user approval.</div>
+    <div class="phases-grid">
+      <div class="phase-card boot fade-up fade-up-delay-1">
+        <div class="phase-card-header">
+          <span class="phase-card-icon">🚀</span>
+          <div>
+            <div class="phase-card-title">Boot</div>
+            <div class="phase-card-sub">Session Alignment — run once, takes ~30 seconds</div>
+          </div>
         </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Type</div>
-          <div class="anatomy-field-val">Prevention</div>
-        </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Trigger</div>
-          <div class="anatomy-field-val">Any time about to edit files in the core agent functions directory</div>
-        </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Confidence</div>
-          <div class="anatomy-field-val">Hard Constraint</div>
+        <div class="phase-card-body">
+          <ul class="phase-step-list">
+            <li><span class="pstep-arrow">→</span>Pull latest from git — library is always current</li>
+            <li><span class="pstep-arrow">→</span>Detect project name, dev port, dev server directory</li>
+            <li><span class="pstep-arrow">→</span>Start dev server from correct directory (not assumed root)</li>
+            <li><span class="pstep-arrow">→</span>Load only Guidance tables — Hard Constraints first</li>
+            <li><span class="pstep-arrow">→</span>Flag pearls past their Review By date</li>
+            <li><span class="pstep-arrow">→</span>Activate ⚡ invocation tracking</li>
+            <li><span class="pstep-arrow">→</span>Fire boot canary: <code>[BOOTED] N pearls loaded</code></li>
+          </ul>
         </div>
       </div>
 
-      <p style="font-size:0.8rem; color:var(--text-muted); margin: 1.5rem 0 0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em;">METRICS TABLE — updated at harvest</p>
-      <div class="anatomy-card">
-        <div class="anatomy-card-header" style="color:var(--purple);">📊 <span>Metrics</span></div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Maturity</div>
-          <div class="anatomy-field-val"><span style="color:var(--est-color); font-weight:700;">Established</span></div>
+      <div class="phase-card session fade-up fade-up-delay-2">
+        <div class="phase-card-header">
+          <span class="phase-card-icon">⚡</span>
+          <div>
+            <div class="phase-card-title">Active Session</div>
+            <div class="phase-card-sub">Wisdom in Action — throughout the session</div>
+          </div>
         </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Min/Use</div>
-          <div class="anatomy-field-val">480 min <span style="color:var(--text-muted); font-size:0.75em;">(8 hours — measured from original incident)</span></div>
-        </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Uses</div>
-          <div class="anatomy-field-val">0 <span style="color:var(--text-muted); font-size:0.75em;">(never needed to fire — prevention is complete)</span></div>
-        </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Total Saved</div>
-          <div class="anatomy-field-val"><span style="color:var(--cyan);">0 min</span> <span style="color:var(--text-muted); font-size:0.75em;">(potential: 480 min per future invocation)</span></div>
-        </div>
-        <div class="anatomy-field">
-          <div class="anatomy-field-name">Review By</div>
-          <div class="anatomy-field-val">2026-09-14</div>
+        <div class="phase-card-body">
+          <ul class="phase-step-list">
+            <li><span class="pstep-arrow g">→</span>Pearls loaded at boot are live in context</li>
+            <li><span class="pstep-arrow g">→</span>Trigger conditions are actively monitored</li>
+            <li><span class="pstep-arrow g">→</span>Log ⚡ when a pearl prevents a mistake</li>
+            <li><span class="pstep-arrow g">→</span>Context decay: re-inject critical pearls on long sessions</li>
+            <li><span class="pstep-arrow g">→</span>Record problem cycles: attempt → failure → solution</li>
+            <li><span class="pstep-arrow g">→</span>Commit your work BEFORE running harvest at end</li>
+          </ul>
         </div>
       </div>
-    </div>
 
-    <div class="anatomy-legend">
-      <div class="anatomy-legend-item">
-        <span class="field-tag tag-guidance">Guidance</span>
-        <div class="field-desc"><strong>Notes</strong> — one actionable sentence. No project names. No filenames. Always starts with a verb. This is the rule the agent follows.</div>
-      </div>
-      <div class="anatomy-legend-item">
-        <span class="field-tag tag-guidance">Guidance</span>
-        <div class="field-desc"><strong>Trigger</strong> — the exact observable moment that forces the agent to consciously evaluate this pearl. Vague triggers produce low Hit Rates. Be precise.</div>
-      </div>
-      <div class="anatomy-legend-item">
-        <span class="field-tag tag-guidance">Guidance</span>
-        <div class="field-desc"><strong>Confidence</strong> — <em>Hard Constraint</em>: always follow, no exceptions. <em>Strong Heuristic</em>: follow unless clear reason not to. <em>Soft Pattern</em>: inform judgment only.</div>
-      </div>
-      <div class="anatomy-legend-item">
-        <span class="field-tag tag-metrics">Metrics</span>
-        <div class="field-desc"><strong>Min/Use</strong> — time saved per invocation, measured from conversation timestamps of the original problem. Not estimated — measured. Can be revised upward as more instances occur.</div>
-      </div>
-      <div class="anatomy-legend-item">
-        <span class="field-tag tag-metrics">Metrics</span>
-        <div class="field-desc"><strong>Hit Rate</strong> — Uses ÷ Opportunities. The most actionable metric. Low Hit Rate means the pearl isn't firing when it should. Fix the Trigger before assuming the pearl is bad.</div>
-      </div>
-      <div class="anatomy-legend-item">
-        <span class="field-tag tag-metrics">Metrics</span>
-        <div class="field-desc"><strong>Review By</strong> — pearls expire. Technology changes. Assumptions become obsolete. Every pearl gets a review date. Past due = flag for human validation at next harvest.</div>
+      <div class="phase-card harvest fade-up fade-up-delay-3">
+        <div class="phase-card-header">
+          <span class="phase-card-icon">🌾</span>
+          <div>
+            <div class="phase-card-title">Harvest</div>
+            <div class="phase-card-sub">Measure, Distill, Update — session end ritual</div>
+          </div>
+        </div>
+        <div class="phase-card-body">
+          <ul class="phase-step-list">
+            <li><span class="pstep-arrow gold">→</span>Scan ⚡ logs → increment Uses, recalculate Total Saved</li>
+            <li><span class="pstep-arrow gold">→</span>Retrospective Opportunity Scan on all triggers</li>
+            <li><span class="pstep-arrow gold">→</span>3-Gate Quality Test: pain-tested / non-obvious / transferable</li>
+            <li><span class="pstep-arrow gold">→</span>Measure Min/Use from timestamps — never estimated</li>
+            <li><span class="pstep-arrow gold">→</span>Write survivors to pearls.md (full two-table format)</li>
+            <li><span class="pstep-arrow gold">→</span>Promote maturity: Seed → Confirmed → Established</li>
+            <li><span class="pstep-arrow gold">→</span>git add → commit <code>"harvest: N new pearls..."</code> → push</li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- LIFECYCLE -->
-<section id="lifecycle">
-  <div class="section-label">Pearl Lifecycle</div>
-  <h2>Every pearl earns its place — or leaves with dignity.</h2>
-  <p>Maturity is determined by measured value, not age or vote.</p>
+<!-- ═══ THE MATH ═══ -->
+<div id="math" class="full-bleed" style="background:var(--surface1);">
+  <div class="full-bleed-inner">
+    <div class="section-label fade-up" style="text-align:center;">The Math</div>
+    <h2 class="fade-up fade-up-delay-1" style="text-align:center; max-width:560px; margin:0 auto 1rem;">Four numbers that power<br><span class="text-cyan">the whole system.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="text-align:center; max-width:500px; margin:0 auto;">No votes, no subjective ratings. Every pearl's worth is a calculation — a measurement — not an opinion.</p>
 
-  <div class="lifecycle-track">
-    <div class="lifecycle-stage seed">
-      <div class="stage-dot"></div>
-      <div class="stage-name">Seed</div>
-      <div class="stage-threshold">Total Saved: 0 → 29 min</div>
-      <p>Born from a real debugging cycle. Unproven. Has a Trigger and a measured Min/Use from day one. Loaded at boot, tracked carefully.</p>
-    </div>
-    <div class="lifecycle-stage confirmed">
-      <div class="stage-dot"></div>
-      <div class="stage-name">Confirmed</div>
-      <div class="stage-threshold">Total Saved: ≥ 30 min</div>
-      <p>Has prevented at least one real mistake since being written. Value is no longer theoretical. Promoted automatically when the threshold is crossed.</p>
-    </div>
-    <div class="lifecycle-stage established">
-      <div class="stage-dot"></div>
-      <div class="stage-name">Established</div>
-      <div class="stage-threshold">Total Saved: ≥ 120 min</div>
-      <p>Proven across multiple invocations. This pearl has saved meaningful real-world time. Protected from pruning unless explicitly retired by a human.</p>
-    </div>
-    <div class="lifecycle-stage retired">
-      <div class="stage-dot"></div>
-      <div class="stage-name">Retired</div>
-      <div class="stage-threshold">Human confirmed outdated</div>
-      <p>Not deleted — archived. The reason it was retired is recorded. Institutional history of what was true and why it no longer is. Never auto-pruned.</p>
+    <div class="formula-grid" style="margin-top:3.5rem;">
+      <div class="formula-card fade-up fade-up-delay-1">
+        <div class="formula-card-glow"></div>
+        <div class="formula-label">Pearl Value</div>
+        <h3>Total Saved</h3>
+        <div class="formula">
+          <span class="vc">Total Saved</span> = <span class="vp">Uses</span> × <span class="vg">Min/Use</span>
+        </div>
+        <p class="formula-insight">The only metric that matters. A pearl invoked once saving 8 hours (480 min) is worth more than one invoked 100 times saving 2 minutes each (200 min). Frequency is not value.</p>
+      </div>
+
+      <div class="formula-card purple fade-up fade-up-delay-2">
+        <div class="formula-card-glow"></div>
+        <div class="formula-label">Effectiveness</div>
+        <h3>Hit Rate</h3>
+        <div class="formula">
+          <span class="vp">Hit Rate</span> = <span class="vc">Uses</span> / <span class="vg">Opportunities</span>
+        </div>
+        <p class="formula-insight">How often the pearl fires when its trigger arises. A low hit rate signals a trigger wording problem — the situation is happening, the pearl just isn't being applied.</p>
+      </div>
+
+      <div class="formula-card gold fade-up fade-up-delay-3">
+        <div class="formula-card-glow"></div>
+        <div class="formula-label">Time Cost</div>
+        <h3>Min/Use</h3>
+        <div class="formula">
+          <span class="vg">Min/Use</span> = T_fixed − T_problem_arose
+        </div>
+        <p class="formula-insight">Measured from conversation timestamps — the exact elapsed time of the debugging cycle this pearl prevents. A measurement, never an estimate. This is why the timestamps matter.</p>
+      </div>
+
+      <div class="formula-card green fade-up fade-up-delay-4">
+        <div class="formula-card-glow"></div>
+        <div class="formula-label">Library Quality</div>
+        <h3>Health Score</h3>
+        <div class="formula" style="font-size:0.95rem;">
+          <span class="vn">0–100</span> composite
+        </div>
+        <p class="formula-insight">Maturity (30%) + Valuation coverage of invoked pearls (30%) + Avg hit rate (25%) + Prune cleanliness (15%). Shown live in the dashboard. A library at 80+ is a library that earns its load time.</p>
+      </div>
     </div>
   </div>
-
-  <p style="margin-top:2rem; font-size:0.875rem; color:var(--text-muted);">
-    <strong style="color:var(--text)">Pruning rule:</strong> A pearl is flagged as a candidate only if all three conditions are true simultaneously: Maturity = Seed AND Total Saved &lt; 15 min AND Age &gt; 60 days. Pearls with unknown Min/Use are excluded from all pruning decisions. A human always makes the final call.
-  </p>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- PEARL TYPES -->
-<section id="types">
-  <div class="section-label">Pearl Types</div>
-  <h2>Not all pearls work the same way.</h2>
-  <p>Three types. Each measured differently. Each serving a different role.</p>
+<!-- ═══ PEARL ANATOMY ═══ -->
+<div id="anatomy">
+  <div class="section-wrap">
+    <div class="section-label fade-up">Pearl Anatomy</div>
+    <h2 class="fade-up fade-up-delay-1">What a pearl looks like inside —<br><span class="text-cyan">the two-table schema.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:620px;">Each pearl category has two markdown tables: a <strong>Guidance table</strong> (loaded at boot into active memory) and a <strong>Metrics table</strong> (updated at every harvest). They link by pearl title.</p>
 
-  <div class="types-grid">
-    <div class="type-card">
-      <span class="type-badge prevention-badge">Prevention</span>
-      <h3>Prevention Pearls</h3>
-      <p>Block a specific mistake at a specific decision point. The agent was about to do X wrong — the pearl surfaced and redirected. Logged as <code>⚡</code> invocations.</p>
-      <p>Example: "Always call Read before Edit" fires the moment the agent is about to call Edit on a file it hasn't read.</p>
-      <div class="type-metric">Measured by: ⚡ invocation logs → Uses × Min/Use = Total Saved</div>
+    <div class="anatomy-section">
+      <!-- Guidance Table -->
+      <div class="anatomy-table-wrap fade-up fade-up-delay-2">
+        <div class="anatomy-table-header">
+          <div class="anatomy-table-title">
+            <span>.agent/alignment/pearls.md</span> — Guidance Table
+          </div>
+          <span class="anatomy-badge-guidance">LOADED AT BOOT</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="anatomy-table">
+            <thead>
+              <tr>
+                <th>Pearl</th>
+                <th>Notes</th>
+                <th>Type</th>
+                <th>Trigger</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Grep does not satisfy Edit's read requirement</td>
+                <td>Even with the exact line from a Grep result, the Edit tool rejects without an explicit prior Read call. Always call Read explicitly before any Edit.</td>
+                <td>Prevention</td>
+                <td>Before calling Edit on any file, especially after a Grep search</td>
+                <td class="confidence-hc">Hard Constraint</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Metrics Table -->
+      <div class="anatomy-table-wrap fade-up fade-up-delay-3">
+        <div class="anatomy-table-header">
+          <div class="anatomy-table-title">
+            <span>.agent/alignment/pearls.md</span> — Metrics Table
+          </div>
+          <span class="anatomy-badge-metrics">UPDATED AT HARVEST</span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="anatomy-table">
+            <thead>
+              <tr>
+                <th>Pearl</th>
+                <th>Maturity</th>
+                <th>Added</th>
+                <th>Review By</th>
+                <th>Opportunities</th>
+                <th>Uses</th>
+                <th>Min/Use</th>
+                <th>Total Saved</th>
+                <th>Hit Rate</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Grep does not satisfy Edit's read requirement</td>
+                <td class="maturity-est">Established</td>
+                <td style="color:var(--text-muted);">(unknown)</td>
+                <td style="color:var(--text-muted);">2026-09-14</td>
+                <td style="color:var(--purple); font-family:'JetBrains Mono',monospace;">2</td>
+                <td style="color:var(--purple); font-family:'JetBrains Mono',monospace;">2</td>
+                <td style="color:var(--text-muted);">?</td>
+                <td style="color:var(--text-muted);">?</td>
+                <td style="color:var(--green); font-family:'JetBrains Mono',monospace;">100%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
-    <div class="type-card">
-      <span class="type-badge orientation-badge">Orientation</span>
-      <h3>Orientation Pearls</h3>
-      <p>Frame the entire session's character and approach. Don't fire at a single decision point — shape every decision made throughout the work. The protection is atmospheric.</p>
-      <p>Example: "This is a template, not a project-specific tool" colors how every design decision is made, all session long.</p>
-      <div class="type-metric">Measured by: human judgment — did the agent need correction in this domain today?</div>
-    </div>
-    <div class="type-card">
-      <span class="type-badge diagnostic-badge">Diagnostic</span>
-      <h3>Diagnostic Pearls</h3>
-      <p>Guide investigation when something breaks. Don't prevent the problem — accelerate the path to the solution. Fired when a known failure pattern is recognized.</p>
-      <p>Example: "If auto-research never completes, check PROCESS_TASK_URL first" cuts a 2-hour debug to 5 minutes.</p>
-      <div class="type-metric">Measured by: ⚡ invocation logs — time from problem onset to solution with vs. without the pearl</div>
+
+    <!-- Callouts -->
+    <div class="anatomy-callouts" style="margin-top:2rem;">
+      <div class="callout-card fade-up">
+        <span class="callout-tag guidance">Type</span>
+        <div class="callout-text">
+          <h4>Prevention / Orientation / Diagnostic</h4>
+          <p>Prevention blocks a mistake. Orientation shapes session framing before work starts. Diagnostic guides investigation when something breaks.</p>
+        </div>
+      </div>
+      <div class="callout-card fade-up fade-up-delay-1">
+        <span class="callout-tag guidance">Trigger</span>
+        <div class="callout-text">
+          <h4>The observable moment that forces evaluation</h4>
+          <p>Vague triggers = low hit rate. "Before doing anything" is not a trigger. "Before calling Edit after a Grep search" is a trigger.</p>
+        </div>
+      </div>
+      <div class="callout-card fade-up fade-up-delay-2">
+        <span class="callout-tag guidance">Confidence</span>
+        <div class="callout-text">
+          <h4>Hard Constraint / Strong Heuristic / Soft Pattern</h4>
+          <p>Hard = always follow. Strong = follow unless clear reason not to. Soft = background awareness, not a rule.</p>
+        </div>
+      </div>
+      <div class="callout-card fade-up fade-up-delay-3">
+        <span class="callout-tag metrics">Opportunities</span>
+        <div class="callout-text">
+          <h4>Sessions where the trigger condition arose</h4>
+          <p>Counted whether or not the pearl fired. Used to calculate Hit Rate. The denominator of the effectiveness score.</p>
+        </div>
+      </div>
+      <div class="callout-card fade-up">
+        <span class="callout-tag metrics">Min/Use</span>
+        <div class="callout-text">
+          <h4>Elapsed time of the original debugging cycle</h4>
+          <p>Measured from conversation timestamps: T_fixed − T_problem_arose. A measurement, never an estimate. The exact cost of the mistake this pearl prevents.</p>
+        </div>
+      </div>
+      <div class="callout-card fade-up fade-up-delay-1">
+        <span class="callout-tag metrics">Review By</span>
+        <div class="callout-text">
+          <h4>Expiration date — 6 months from creation</h4>
+          <p>Flagged at boot when past due. A human validates whether the rule is still accurate. Technology changes. Pearls should too.</p>
+        </div>
+      </div>
     </div>
   </div>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- WHY NOVEL -->
-<section id="novel">
-  <div class="section-label">Why This Is Different</div>
-  <h2>This has never been built quite like this before.</h2>
+<!-- ═══ PEARL LIFECYCLE ═══ -->
+<div id="library" style="background:var(--surface1);">
+  <div class="section-wrap">
+    <div class="section-label fade-up">Pearl Lifecycle</div>
+    <h2 class="fade-up fade-up-delay-1">Every pearl earns its place —<br><span class="text-green">or leaves with dignity.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:580px;">Pearls are not permanent by default. They start as seeds and prove their value through invocations. Or they get flagged for review and retire gracefully — preserved as institutional history.</p>
 
-  <div class="novel-grid">
-    <div class="novel-card">
-      <div class="novel-icon">📐</div>
-      <div>
-        <h3>Value Is Measured, Not Voted On</h3>
-        <p>Min/Use comes from actual session timestamps. It is a measurement of real pain, not an opinion. No human bias. No inflated importance. The cost of the original mistake is the value of the pearl.</p>
+    <div class="lifecycle-track fade-up fade-up-delay-2">
+      <div class="lifecycle-stage seed">
+        <div class="stage-dot"></div>
+        <div class="stage-name">Seed</div>
+        <span class="stage-threshold">newly added</span>
+        <p>Add date set. Min/Use measured from the incident that spawned the pearl. Waiting to prove value across sessions.</p>
+      </div>
+      <div class="lifecycle-stage confirmed">
+        <div class="stage-dot"></div>
+        <div class="stage-name">Confirmed</div>
+        <span class="stage-threshold">≥ 30 min saved</span>
+        <p>Total Saved crossed 30 minutes. Pattern confirmed across sessions — this pearl fires when it should and saves meaningful time.</p>
+      </div>
+      <div class="lifecycle-stage established">
+        <div class="stage-dot"></div>
+        <div class="stage-name">Established</div>
+        <span class="stage-threshold">≥ 120 min saved</span>
+        <p>Core library. Loads at every boot. Has saved more than two hours of work. Unlikely to be pruned.</p>
+      </div>
+      <div class="lifecycle-stage retired">
+        <div class="stage-dot"></div>
+        <div class="stage-name">Retired</div>
+        <span class="stage-threshold">archived, not deleted</span>
+        <p>Preserved as institutional history with retirement reason. Removed from boot load. Never deleted — the record of why we once needed this rule matters.</p>
       </div>
     </div>
-    <div class="novel-card">
-      <div class="novel-icon">🔬</div>
-      <div>
-        <h3>Rare Pearls Get Fair Credit</h3>
-        <p>A pearl invoked once that prevents an 8-hour disaster is more valuable than one invoked daily for 30 seconds. Every existing system penalizes rare pearls. This one rewards them.</p>
-      </div>
-    </div>
-    <div class="novel-card">
-      <div class="novel-icon">🎯</div>
-      <div>
-        <h3>Hit Rate Finds Silent Failures</h3>
-        <p>Tracking Opportunities (sessions where the trigger arose) alongside Uses exposes pearls that should be firing but aren't. Low Hit Rate is not a pruning signal — it is a tuning signal.</p>
-      </div>
-    </div>
-    <div class="novel-card">
-      <div class="novel-icon">♻️</div>
-      <div>
-        <h3>Fully Self-Contained</h3>
-        <p>A markdown file. A git repo. No database. No API. No infrastructure. The system runs on zero additional cost and works in any project that uses version control.</p>
-      </div>
-    </div>
-    <div class="novel-card">
-      <div class="novel-icon">🌱</div>
-      <div>
-        <h3>The Library Prunes Itself</h3>
-        <p>Pearls that don't earn their place are flagged. Pearls that become obsolete are retired — never deleted — with their history preserved. The library stays lean and current automatically.</p>
-      </div>
-    </div>
-    <div class="novel-card">
-      <div class="novel-icon">🔄</div>
-      <div>
-        <h3>Compounding Returns</h3>
-        <p>Each session improves the library. An improved library improves the next session. There is no ceiling on this accumulation. The value of the system grows with every hour of work.</p>
-      </div>
+
+    <div class="prune-rule fade-up fade-up-delay-3">
+      <h4>✂ Pruning Rule</h4>
+      <p>Seed + Total Saved &lt; 15 min + Age &gt; 60 days = Prune Candidate. Automatically flagged for human review — <strong>never auto-deleted</strong>. You decide. The system only surfaces the candidates.</p>
     </div>
   </div>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- UNIVERSAL -->
-<section id="universal">
-  <div class="section-label">Universal Application</div>
-  <h2>Works for anyone.<br><span class="text-cyan">In any field. On any problem.</span></h2>
-  <p style="max-width:600px;">The Pearl System is domain-agnostic by design. The structure works identically whether the "debugging cycle" is a software bug, a failed legal argument, a rejected hypothesis, or a business plan that missed the mark.</p>
+<!-- ═══ PEARL TYPES ═══ -->
+<div id="types">
+  <div class="section-wrap">
+    <div class="section-label fade-up">Pearl Types</div>
+    <h2 class="fade-up fade-up-delay-1">Three ways a pearl protects a session.</h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:540px;">Not all pearls do the same job. Type determines when a pearl fires and how its value gets measured.</p>
 
-  <div class="universal-grid">
-    <div class="universal-card"><span class="icon">💻</span><p>Software Engineering</p></div>
-    <div class="universal-card"><span class="icon">⚖️</span><p>Legal Research</p></div>
-    <div class="universal-card"><span class="icon">🔬</span><p>Scientific Research</p></div>
-    <div class="universal-card"><span class="icon">📊</span><p>Financial Analysis</p></div>
-    <div class="universal-card"><span class="icon">🏗️</span><p>Architecture & Design</p></div>
-    <div class="universal-card"><span class="icon">🎓</span><p>Education & Tutoring</p></div>
-    <div class="universal-card"><span class="icon">🚀</span><p>Aerospace & Engineering</p></div>
-    <div class="universal-card"><span class="icon">🧬</span><p>Biotech & Medicine</p></div>
-    <div class="universal-card"><span class="icon">📝</span><p>Content & Writing</p></div>
-    <div class="universal-card"><span class="icon">🏢</span><p>Business Strategy</p></div>
-    <div class="universal-card"><span class="icon">🤖</span><p>AI/ML Development</p></div>
-    <div class="universal-card"><span class="icon">🌍</span><p>Any Domain With AI</p></div>
+    <div class="types-grid">
+      <div class="type-card prevention fade-up fade-up-delay-2">
+        <span class="type-badge prevention-badge">Prevention</span>
+        <h3>Blocks a specific mistake</h3>
+        <p>Fires when a dangerous action is about to be taken. The trigger is a specific, observable decision point. Measurable: time saved = the debugging cycle that would have followed.</p>
+        <div class="type-measure">Measurement: T_fixed − T_problem_arose · Easiest to value precisely</div>
+      </div>
+      <div class="type-card orientation fade-up fade-up-delay-3">
+        <span class="type-badge orientation-badge">Orientation</span>
+        <h3>Shapes session framing</h3>
+        <p>Prevents wrong architectural assumptions before work begins. Fires early in the session during planning. Harder to measure — value is in what doesn't get built wrong.</p>
+        <div class="type-measure">Measurement: time-boxed estimate of wrong-path cost · Conservative by convention</div>
+      </div>
+      <div class="type-card diagnostic fade-up fade-up-delay-4">
+        <span class="type-badge diagnostic-badge">Diagnostic</span>
+        <h3>Guides investigation</h3>
+        <p>Fires when specific symptoms appear. Points investigation toward the likely cause, away from expensive wrong paths. Value = time saved by not following the wrong thread.</p>
+        <div class="type-measure">Measurement: elimination of known dead-end paths · Avg wrong-path time saved</div>
+      </div>
+    </div>
   </div>
-
-  <p style="margin-top:2rem; font-size:0.9rem; color:var(--text-dim); max-width:680px;">
-    The only requirement: you must be working on problems where <strong style="color:var(--text)">failure costs measurable time</strong> and where <strong style="color:var(--text)">the same types of failures recur</strong>. If those two conditions are true, The Pearl System will improve your outcomes.
-  </p>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- HOW TO USE -->
-<section id="howto">
-  <div class="section-label">Get Started</div>
-  <h2>Four files. Zero infrastructure.<br><span class="text-gold">Running in under an hour.</span></h2>
+<!-- ═══ WHY DIFFERENT ═══ -->
+<div id="novel">
+  <div class="section-wrap">
+    <div class="section-label fade-up">Why This Is Different</div>
+    <h2 class="fade-up fade-up-delay-1">This has never been built<br><span class="text-purple">quite like this before.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:580px;">Not a notes system. Not a documentation layer. A memory engine with economic valuation, lifecycle management, and a feedback loop that compounds over time.</p>
 
-  <div class="howto-steps">
-    <div class="howto-step">
-      <div class="howto-step-num">1</div>
-      <div>
-        <h3>Create your pearl file</h3>
-        <p>Create <code>.agent/alignment/pearls.md</code> in your project root. Use the two-table format (Guidance + Metrics per category). Start with zero pearls — or seed it with a few obvious Hard Constraints you already know.</p>
+    <div class="novel-grid">
+      <div class="novel-card fade-up fade-up-delay-1">
+        <div class="novel-icon">📊</div>
+        <div>
+          <h3>Value Is Measured, Not Voted On</h3>
+          <p>Uses × Min/Use replaces subjective importance ratings. Every pearl's worth is a calculation — a measurement based on real elapsed time, not a feeling.</p>
+        </div>
       </div>
-    </div>
-    <div class="howto-step">
-      <div class="howto-step-num">2</div>
-      <div>
-        <h3>Add the /boot skill</h3>
-        <p>Add <code>boot.md</code> to your Claude Code skills directory. Run <code>/boot</code> at the start of every session. It loads your pearls, arms your triggers, and reports alignment status in under 30 seconds.</p>
+      <div class="novel-card fade-up fade-up-delay-2">
+        <div class="novel-icon">💎</div>
+        <div>
+          <h3>Rare Pearls Get Fair Credit</h3>
+          <p>A pearl invoked once saving 8 hours (480 min) is more valuable than one invoked 100 times saving 2 minutes (200 min total). Frequency is not value. This system knows the difference.</p>
+        </div>
       </div>
-    </div>
-    <div class="howto-step">
-      <div class="howto-step-num">3</div>
-      <div>
-        <h3>Work normally. Log invocations.</h3>
-        <p>When a pearl prevents a mistake, log it: <code>⚡ Pearl invoked: "[Title]" — [what was avoided]</code>. That's it. The log is what harvest reads. No other changes to how you work.</p>
+      <div class="novel-card fade-up fade-up-delay-3">
+        <div class="novel-icon">🎯</div>
+        <div>
+          <h3>Hit Rate Finds Silent Failures</h3>
+          <p>Distinguishes between "never triggered" (idle — normal for rare situations) and "triggered but didn't fire" (wording problem — needs fixing). Most systems can't see this at all.</p>
+        </div>
       </div>
-    </div>
-    <div class="howto-step">
-      <div class="howto-step-num">4</div>
-      <div>
-        <h3>Harvest at session end</h3>
-        <p>Run <code>/harvest</code> after any session with significant problem-solving. It scans the conversation, measures time costs, extracts new pearls with real Min/Use values, updates all metrics, and commits. The library gets smarter.</p>
+      <div class="novel-card fade-up">
+        <div class="novel-icon">🔍</div>
+        <div>
+          <h3>The Retrospective Opportunity Scan</h3>
+          <p>At harvest, every pearl's trigger is checked against the full session — even without a ⚡ log. Silent protections get counted. Silent failures get flagged. Nothing is missed.</p>
+        </div>
       </div>
-    </div>
-    <div class="howto-step">
-      <div class="howto-step-num">5</div>
-      <div>
-        <h3>Watch the library mature</h3>
-        <p>After a few sessions, seeds become Confirmed. After a few more, they become Established. Hit Rate reveals which pearls need trigger refinement. Total Saved shows you exactly how much time the system has returned to you.</p>
+      <div class="novel-card fade-up fade-up-delay-1">
+        <div class="novel-icon">✂️</div>
+        <div>
+          <h3>The Library Prunes Itself</h3>
+          <p>Automated candidate flagging: Seed + low value + age over 60 days = presented for human review. The library doesn't bloat. Dead weight surfaces automatically.</p>
+        </div>
+      </div>
+      <div class="novel-card fade-up fade-up-delay-2">
+        <div class="novel-icon">📈</div>
+        <div>
+          <h3>Compounding Returns</h3>
+          <p>Week 1: 5 pearls. Month 3: 30 pearls, many Established. Each session gets faster than the last. The library is the proof. Institutional memory that actually compounds.</p>
+        </div>
       </div>
     </div>
   </div>
-</section>
+</div>
 
 <hr class="divider">
 
-<!-- VISION -->
-<section id="vision">
-  <div class="section-label">The Vision</div>
-  <h2>What this becomes over time.</h2>
-  <div class="vision-quote">
-    Every organization deploying AI today starts each session from zero. There is no institutional learning. Every mistake gets made fresh, by every agent, every time. The Pearl System is the first practical, measurable answer to that problem.
+<!-- ═══ UNIVERSAL APPLICATION ═══ -->
+<div id="universal" style="background:var(--surface1);">
+  <div class="section-wrap">
+    <div class="section-label fade-up">Universal Application</div>
+    <h2 class="fade-up fade-up-delay-1">Works for anyone. In any field.<br><span class="text-cyan">On any problem.</span></h2>
+    <p class="fade-up fade-up-delay-2" style="max-width:540px;">The pearl schema is domain-agnostic. Trigger → Rule → Measure. Works wherever an AI agent makes repeated decisions in a complex domain.</p>
+
+    <div class="universal-grid">
+      <div class="universal-card fade-up fade-up-delay-1">
+        <span class="icon">💻</span>
+        <p>Software Engineering</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-2">
+        <span class="icon">⚖️</span>
+        <p>Legal Research</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-3">
+        <span class="icon">📈</span>
+        <p>Financial Analysis</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-4">
+        <span class="icon">🏥</span>
+        <p>Medical Diagnosis</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-5">
+        <span class="icon">🎯</span>
+        <p>Business Strategy</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-6">
+        <span class="icon">🔬</span>
+        <p>Scientific Research</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-1">
+        <span class="icon">✍️</span>
+        <p>Creative Writing</p>
+      </div>
+      <div class="universal-card fade-up fade-up-delay-2">
+        <span class="icon">🖥️</span>
+        <p>Systems Administration</p>
+      </div>
+    </div>
   </div>
-  <p style="max-width:600px; margin:0 auto 2rem; text-align:center;">
-    A mature pearl library is an organization's accumulated AI wisdom — distilled from real pain, valued by real time, refined over real sessions. It is not documentation. It is not a prompt. It is institutional memory that compounds.
-  </p>
-  <div style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center;">
-    <span class="tag">Zero infrastructure cost</span>
-    <span class="tag" style="background:var(--purple-dim); color:var(--purple);">Self-improving</span>
-    <span class="tag" style="background:var(--gold-dim); color:var(--gold);">Domain-agnostic</span>
-    <span class="tag" style="background:rgba(34,197,94,0.12); color:var(--green);">Value-measured</span>
+</div>
+
+<hr class="divider">
+
+<!-- ═══ VISION ═══ -->
+<div id="vision">
+  <div class="section-wrap" style="text-align:center;">
+    <div class="section-label fade-up">Vision</div>
+    <h2 class="fade-up fade-up-delay-1" style="max-width:620px; margin:0 auto 1.5rem;">What this becomes<br><span class="text-purple">over time.</span></h2>
+
+    <div class="vision-body fade-up fade-up-delay-2">
+      <p>The Pearl System is not a static configuration file. It is a living library that grows with every session. Each harvest adds pearls, updates metrics, and promotes the library's maturity — and the next boot starts from that improved state. The improvement is not linear. Each pearl reduces the frequency of expensive mistakes, which frees cognitive bandwidth for discovering the next category of patterns. The library deepens as it grows.</p>
+      <p>The dashboard shows this happening in real time. The Health Score rises as pearls move from Seed to Established. The Total Saved column fills in as invocations accumulate. The hit rate stabilizes as trigger wording improves. These are not vanity metrics — they are evidence of an agent that is measurably better at its job than it was six weeks ago.</p>
+      <div class="vision-closer fade-up fade-up-delay-3">
+        "The agent that loaded with 5 pearls in week one will load with 40 in month six.<br>
+        Each session gets measurably faster. Each mistake gets rarer.<br>
+        The library is the proof."
+      </div>
+    </div>
   </div>
-</section>
+</div>
+
+<hr class="divider">
 
 <footer>
-  <p>The Pearl System · Built session by session · Committed to git · Free forever</p>
-  <p style="margin-top:0.5rem; color:var(--text-muted);">A closed-loop institutional memory engine for AI agents. Works with any AI assistant. Works in any domain.</p>
+  <p>The Pearl System — Persistent AI memory. <code>.agent/alignment/pearls.md</code> · Dashboard at <code>localhost:7777</code> · Boot with <code>/boot</code> · Harvest with <code>/wisdom-harvest</code></p>
 </footer>
+
+<script>
+  // IntersectionObserver for fade-up animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.08 });
+
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
 
 </body>
 </html>
