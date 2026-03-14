@@ -60,6 +60,7 @@
 | `Template is content-agnostic` | The first use case was one specific engagement. The template works for any knowledge domain. Never hardcode domain-specific assumptions into the pipeline architecture. | Orientation | When building new features, structuring knowledge folders, or designing ingestion pipelines | Hard Constraint |
 | `Dashboard is backburner` | The localhost:8888 dashboard is use-case-specific and not the current focus. Do not refactor, extend, or improve it unless explicitly requested. | Orientation | Any time the dashboard comes up in conversation or a change to it seems logical | Strong Heuristic |
 | `Coverage metrics need eligible-only denominators` | Completeness metrics must use only items that are eligible for the measured attribute in their denominator — items that correctly lack the attribute because they've had no opportunity to acquire it must be excluded, or they generate permanent false alarms that mask real gaps. | Prevention | When designing any completeness, coverage, or progress metric that aggregates items with heterogeneous states | Strong Heuristic |
+| `RAG parent-child dedup by parent_id` | TopK vector retrieval returns multiple child vectors from the same parent section; injecting all of them causes the same passage to repeat in the LLM prompt and dilutes relevance — always dedup by `parent_id` keeping the highest-scoring child before assembling context. | Prevention | Whenever building or modifying a RAG retrieval pipeline that uses parent-child or hierarchical chunking | Hard Constraint |
 
 **Metrics** *(updated at harvest)*
 
@@ -69,6 +70,7 @@
 | `Template is content-agnostic` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
 | `Dashboard is backburner` | Established | (unknown) | 2026-09-14 | 0 | 0 | ? | ? | — |
 | `Coverage metrics need eligible-only denominators` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
+| `RAG parent-child dedup by parent_id` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 45 | 45 | 100% |
 
 ---
 
@@ -82,6 +84,7 @@
 | `Dev script may not be at repo root` | The dev server command and port may live in a subdirectory package.json (e.g., `web/dashboard`). Always search all package.json files for the dev script matching the detected port — never assume root has the dev script. | Prevention | When starting the dev server or running `npm run dev` during boot | Hard Constraint |
 | `Windows paths in .env use forward slashes` | File paths set as environment variable values must use forward slashes even on Windows — backslashes cause silent parse failures (wrong value returned, no error thrown), producing zero results with no diagnostic clue. | Prevention | When setting any file system path as a value in a .env or .env.local file on a Windows machine | Hard Constraint |
 | `Markdown tables: skip header AND separator` | When parsing markdown tables programmatically, skip both the separator row (`\|---\|`) AND the header row — separators match a clear regex pattern, but header rows are structurally identical to data rows and corrupt the first parsed record if not explicitly skipped. | Prevention | When writing any parser that extracts rows from markdown or similarly-formatted tables | Hard Constraint |
+| `Suppression flag ≠ action flag` | Pre-setting a boolean to `true` to suppress a detection path reuses the same variable to mean "this action should fire" — causing the suppressed behavior to trigger instead; split into two explicitly named variables the moment a flag must serve both purposes. | Prevention | When writing boolean state for any async flow, feature flag, or event system where "skip detection" and "trigger action" share the same variable | Hard Constraint |
 
 **Metrics** *(updated at harvest)*
 
@@ -91,6 +94,7 @@
 | `Dev script may not be at repo root` | Seed | 2026-03-14 | 2026-09-14 | 2 | 2 | 5 | 10 | 100% |
 | `Windows paths in .env use forward slashes` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
 | `Markdown tables: skip header AND separator` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 10 | 10 | 100% |
+| `Suppression flag ≠ action flag` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 30 | 30 | 100% |
 
 ---
 
