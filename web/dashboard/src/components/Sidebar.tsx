@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  LayoutDashboard, Search, FileText, Users, Factory,
+  LayoutDashboard, Database, Cpu, Bot, Factory,
   Package, Globe, ShieldCheck, Settings, Activity,
   ChevronLeft, ChevronRight, Brain
 } from 'lucide-react'
@@ -12,9 +12,9 @@ import {
 const NAV_ITEMS = {
   operations: [
     { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/intelligence', icon: Search, label: 'Intelligence' },
-    { href: '/documents', icon: FileText, label: 'Documents' },
-    { href: '/agents', icon: Users, label: 'Agent Teams' },
+    { href: '/intelligence', icon: Database, label: 'Knowledge Base' },
+    { href: '/documents', icon: Cpu, label: 'Embed Control' },
+    { href: '/agents', icon: Bot, label: 'Agent Config' },
     { href: '/production', icon: Factory, label: 'Production' },
     { href: '/deliverables', icon: Package, label: 'Deliverables' },
     { href: '/presentation', icon: Globe, label: 'Presentation Site' },

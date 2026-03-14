@@ -7,9 +7,9 @@ import config from '@/lib/siteConfig'
 
 const PAGE_NAMES: Record<string, string> = {
   '/': 'Dashboard',
-  '/intelligence': 'Intelligence',
-  '/documents': 'Documents',
-  '/agents': 'Agent Teams',
+  '/intelligence': 'Knowledge Base',
+  '/documents': 'Embed Control',
+  '/agents': 'Agent Config',
   '/production': 'Production',
   '/deliverables': 'Deliverables',
   '/presentation': 'Presentation Site',

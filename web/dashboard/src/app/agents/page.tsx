@@ -1,125 +1,570 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { AgentCard } from '@/components/AgentCard'
-import { StatusBadge } from '@/components/StatusBadge'
-import type { Objection } from '@/lib/types'
+import { X } from 'lucide-react'
 
-const AGENTS = [
-  { name: 'Lead Agent', emoji: '🎯', role: 'Coordinator', description: 'Orchestrates all agent activities, manages rounds, synthesizes cross-pollination insights' },
-  { name: 'Profiler', emoji: '🔍', role: 'Target Intelligence', description: 'Deep analysis of the target decision-makers and their organization' },
-  { name: 'Translator', emoji: '🌐', role: 'Cultural Bridge', description: 'Philippine business culture, communication protocols, relationship dynamics' },
-  { name: 'Scout', emoji: '🏕️', role: 'Competitive Intelligence', description: 'Market landscape, regulatory environment, competitive positioning' },
-  { name: 'Red Team', emoji: '👹', role: 'Adversarial Review', description: 'Identify weaknesses, anticipate objections, stress-test claims' },
-]
+type TabName = 'Identity' | 'Soul' | 'Voice' | 'Response'
 
-export default function AgentsPage() {
-  const [round, setRound] = useState(1)
-  const [objections, setObjections] = useState<Objection[]>([])
+interface SiteConfig {
+  company: {
+    name: string
+    short_name: string
+    tagline: string
+    domain: string
+  }
+  agent: {
+    name: string
+    role: string
+    personality: string
+    systemPromptPath: string
+  }
+  voice: {
+    provider: string
+    voiceId: string
+    model: string
+    enabled?: boolean
+  }
+  rag: {
+    matchCount: number
+    similarityThreshold: number
+    researchThreshold: number
+    chunkMaxChars: number
+    embeddingModel: string
+    embeddingDimensions: number
+    pinecone: { indexName: string }
+  }
+  market_data: {
+    enabled: boolean
+    weather_location: { name: string; latitude: number; longitude: number }
+  }
+}
 
-  const loadData = useCallback(async () => {
-    const dealId = localStorage.getItem('kop-deal-id')
-    if (!dealId) return
-    const { data } = await supabase.from('objection_register').select('*').eq('deal_id', dealId).order('created_at', { ascending: false })
-    if (data) setObjections(data)
+const TABS: TabName[] = ['Identity', 'Soul', 'Voice', 'Response']
+
+export default function AgentConfigPage() {
+  const [activeTab, setActiveTab] = useState<TabName>('Identity')
+  const [config, setConfig] = useState<SiteConfig | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
+  const [systemPromptContent, setSystemPromptContent] = useState('')
+  const [systemPromptLoaded, setSystemPromptLoaded] = useState(false)
+  const [showPromptModal, setShowPromptModal] = useState(false)
+  const [promptModalContent, setPromptModalContent] = useState('')
+
+  // Field states - Identity
+  const [agentName, setAgentName] = useState('')
+  const [agentRole, setAgentRole] = useState('')
+  const [agentPersonality, setAgentPersonality] = useState('')
+  const [companyName, setCompanyName] = useState('')
+  const [companyShortName, setCompanyShortName] = useState('')
+  const [companyTagline, setCompanyTagline] = useState('')
+  const [domain, setDomain] = useState('')
+
+  // Voice
+  const [voiceEnabled, setVoiceEnabled] = useState(true)
+  const [voiceId, setVoiceId] = useState('')
+  const [voiceModel, setVoiceModel] = useState('')
+
+  // Response
+  const [matchCount, setMatchCount] = useState(15)
+  const [similarityThreshold, setSimilarityThreshold] = useState(0.3)
+  const [researchThreshold, setResearchThreshold] = useState(0.7)
+  const [chunkMaxChars, setChunkMaxChars] = useState(3200)
+  const [autoResearch, setAutoResearch] = useState(false)
+  const [marketEnabled, setMarketEnabled] = useState(false)
+  const [weatherName, setWeatherName] = useState('')
+  const [weatherLat, setWeatherLat] = useState(0)
+  const [weatherLng, setWeatherLng] = useState(0)
+
+  const showToast = useCallback((msg: string, ok = true) => {
+    setToast({ msg, ok })
+    setTimeout(() => setToast(null), 3000)
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
+  const loadConfig = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/config')
+      if (res.ok) {
+        const data = await res.json() as SiteConfig
+        setConfig(data)
+        setAgentName(data.agent?.name ?? '')
+        setAgentRole(data.agent?.role ?? '')
+        setAgentPersonality(data.agent?.personality ?? '')
+        setCompanyName(data.company?.name ?? '')
+        setCompanyShortName(data.company?.short_name ?? '')
+        setCompanyTagline(data.company?.tagline ?? '')
+        setDomain(data.company?.domain ?? '')
+        setVoiceEnabled(data.voice?.enabled !== false)
+        setVoiceId(data.voice?.voiceId ?? '')
+        setVoiceModel(data.voice?.model ?? '')
+        setMatchCount(data.rag?.matchCount ?? 15)
+        setSimilarityThreshold(data.rag?.similarityThreshold ?? 0.3)
+        setResearchThreshold(data.rag?.researchThreshold ?? 0.7)
+        setChunkMaxChars(data.rag?.chunkMaxChars ?? 3200)
+        setMarketEnabled(data.market_data?.enabled ?? false)
+        setWeatherName(data.market_data?.weather_location?.name ?? '')
+        setWeatherLat(data.market_data?.weather_location?.latitude ?? 0)
+        setWeatherLng(data.market_data?.weather_location?.longitude ?? 0)
+      }
+    } catch { /* ignore */ }
+    setLoading(false)
+  }, [])
 
-  const lead = AGENTS[0]
-  const team = AGENTS.slice(1)
+  const loadSystemPrompt = useCallback(async () => {
+    if (systemPromptLoaded) return
+    try {
+      const res = await fetch('/api/admin/config?section=systemPrompt')
+      if (res.ok) {
+        const data = await res.json() as { content: string }
+        setSystemPromptContent(data.content)
+        setPromptModalContent(data.content)
+        setSystemPromptLoaded(true)
+      }
+    } catch { /* ignore */ }
+  }, [systemPromptLoaded])
+
+  useEffect(() => { loadConfig() }, [loadConfig])
+
+  useEffect(() => {
+    if (activeTab === 'Soul') loadSystemPrompt()
+  }, [activeTab, loadSystemPrompt])
+
+  const saveConfig = async (partial: Record<string, unknown>) => {
+    const res = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(partial),
+    })
+    if (res.ok) {
+      showToast('Saved')
+      await loadConfig()
+    } else {
+      showToast('Error saving', false)
+    }
+  }
+
+  const saveSystemPrompt = async () => {
+    const res = await fetch('/api/admin/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemPromptContent: promptModalContent }),
+    })
+    if (res.ok) {
+      setSystemPromptContent(promptModalContent)
+      showToast('System prompt saved')
+      setShowPromptModal(false)
+    } else {
+      showToast('Error saving system prompt', false)
+    }
+  }
+
+  const testVoice = async () => {
+    const text = `Hello, I'm ${agentName}. How can I help you today?`
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      })
+      if (res.ok) {
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const audio = new Audio(url)
+        audio.play()
+        audio.onended = () => URL.revokeObjectURL(url)
+      } else {
+        showToast('TTS test failed', false)
+      }
+    } catch {
+      showToast('TTS test failed', false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="page-enter flex items-center justify-center h-64">
+        <p className="text-zinc-500 text-sm">Loading config...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="page-enter space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Agent Teams</h1>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            {[1, 2, 3, 4].map(r => (
-              <button
-                key={r}
-                onClick={() => setRound(r)}
-                className={`h-8 w-8 rounded-full text-xs font-bold transition-all ${
-                  r === round
-                    ? 'bg-[var(--color-primary)] text-black'
-                    : r < round
-                    ? 'bg-zinc-700 text-zinc-300'
-                    : 'bg-zinc-800 text-zinc-600'
-                }`}
-              >
-                R{r}
-              </button>
-            ))}
-          </div>
-          <span className="text-xs text-zinc-500">Round {round}</span>
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-sm font-medium shadow-lg ${toast.ok ? 'bg-emerald-900 text-emerald-200 border border-emerald-700' : 'bg-red-900 text-red-200 border border-red-700'}`}>
+          {toast.msg}
         </div>
-      </div>
+      )}
 
-      {/* Lead Agent - Full Width */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
-        <div className="flex items-center gap-3 mb-3">
-          <span className="text-2xl">{lead.emoji}</span>
-          <div>
-            <p className="text-base font-semibold text-zinc-100">{lead.name}</p>
-            <p className="text-xs text-zinc-500">{lead.role}</p>
-          </div>
-          <span className="ml-auto h-3 w-3 rounded-full bg-zinc-600" />
-        </div>
-        <p className="text-sm text-zinc-400">{lead.description}</p>
-      </div>
+      <h1 className="text-2xl font-semibold">Agent Configuration</h1>
 
-      {/* 4 Agent Cards in 2x2 Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        {team.map(agent => (
-          <AgentCard
-            key={agent.name}
-            name={agent.name}
-            emoji={agent.emoji}
-            status="idle"
-            currentTask={agent.description}
-          />
+      {/* Tabs */}
+      <div className="flex gap-1 border-b border-zinc-800">
+        {TABS.map(tab => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 -mb-px ${
+              activeTab === tab
+                ? 'text-[var(--color-primary)] border-[var(--color-primary)]'
+                : 'text-zinc-400 border-transparent hover:text-zinc-200'
+            }`}
+          >
+            {tab}
+          </button>
         ))}
       </div>
 
-      {/* Cross-Pollination Log */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Cross-Pollination Log</h3>
-        <p className="text-sm text-zinc-500 italic">No cross-pollination events yet. Insights will appear here as agents share findings.</p>
-      </div>
-
-      {/* Objection Map */}
-      <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-        <h3 className="text-sm font-semibold text-zinc-200 mb-3">Objection Map</h3>
-        {objections.length === 0 ? (
-          <p className="text-sm text-zinc-500 italic">No objections registered yet. Red Team will populate during analysis.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-zinc-800">
-                  <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Objection</th>
-                  <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Severity</th>
-                  <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Category</th>
-                  <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Source</th>
-                  <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">In Pres.</th>
-                </tr>
-              </thead>
-              <tbody>
-                {objections.map(obj => (
-                  <tr key={obj.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
-                    <td className="py-2 px-3 text-zinc-200 max-w-xs truncate">{obj.objection}</td>
-                    <td className="py-2 px-3"><StatusBadge status={obj.severity} /></td>
-                    <td className="py-2 px-3"><StatusBadge status={obj.category} /></td>
-                    <td className="py-2 px-3 text-zinc-400 text-xs">{obj.likely_source || '—'}</td>
-                    <td className="py-2 px-3">{obj.addressed_in_presentation ? <span className="text-emerald-400">✓</span> : <span className="text-zinc-600">—</span>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* IDENTITY TAB */}
+      {activeTab === 'Identity' && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Agent Name</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                value={agentName}
+                onChange={e => setAgentName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Agent Role</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                value={agentRole}
+                onChange={e => setAgentRole(e.target.value)}
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-xs text-zinc-500 mb-1.5">Agent Personality / Tagline</label>
+              <textarea
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)] resize-none"
+                rows={3}
+                value={agentPersonality}
+                onChange={e => setAgentPersonality(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Company Name</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                value={companyName}
+                onChange={e => setCompanyName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Company Short Name</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                value={companyShortName}
+                onChange={e => setCompanyShortName(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Company Tagline</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                value={companyTagline}
+                onChange={e => setCompanyTagline(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Domain</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                value={domain}
+                onChange={e => setDomain(e.target.value)}
+              />
+            </div>
           </div>
-        )}
-      </div>
+          <button
+            onClick={() => saveConfig({
+              agent: { name: agentName, role: agentRole, personality: agentPersonality },
+              company: { name: companyName, short_name: companyShortName, tagline: companyTagline, domain },
+            })}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+          >
+            Save Identity
+          </button>
+        </div>
+      )}
+
+      {/* SOUL TAB */}
+      {activeTab === 'Soul' && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+          <p className="text-xs text-zinc-500">Edit the sections that define your agent&apos;s behavior. The system prompt file is loaded by the chat pipeline on each conversation.</p>
+
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1.5">Agent Personality (short)</label>
+            <textarea
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)] resize-none"
+              rows={3}
+              value={agentPersonality}
+              onChange={e => setAgentPersonality(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1.5">System Prompt File Path</label>
+            <input
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+              value={config?.agent?.systemPromptPath ?? ''}
+              readOnly
+            />
+            <p className="text-[10px] text-zinc-600 mt-1">Relative to repo root. Change in config.json if needed.</p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex-1">
+              <label className="block text-xs text-zinc-500 mb-1.5">System Prompt Preview</label>
+              <div className="bg-zinc-950 border border-zinc-800 rounded-md p-3 h-32 overflow-y-auto font-mono text-xs text-zinc-400">
+                {systemPromptContent ? systemPromptContent.slice(0, 400) + (systemPromptContent.length > 400 ? '...' : '') : <span className="text-zinc-600 italic">No system prompt file found at configured path.</span>}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => saveConfig({ agent: { personality: agentPersonality } })}
+              className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+            >
+              Save Personality
+            </button>
+            {systemPromptContent && (
+              <button
+                onClick={() => { setPromptModalContent(systemPromptContent); setShowPromptModal(true) }}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 transition-colors"
+              >
+                Edit System Prompt
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* VOICE TAB */}
+      {activeTab === 'Voice' && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Enable Voice</p>
+              <p className="text-xs text-zinc-500">Allow text-to-speech responses</p>
+            </div>
+            <button
+              onClick={() => setVoiceEnabled(!voiceEnabled)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${voiceEnabled ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${voiceEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1.5">Voice Provider</label>
+            <input
+              className="w-full bg-zinc-800/50 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-400 cursor-not-allowed"
+              value={config?.voice?.provider ?? 'elevenlabs'}
+              readOnly
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Voice ID</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                value={voiceId}
+                onChange={e => setVoiceId(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Voice Model</label>
+              <input
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                value={voiceModel}
+                onChange={e => setVoiceModel(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => saveConfig({ voice: { enabled: voiceEnabled, voiceId, model: voiceModel } })}
+              className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+            >
+              Save Voice Settings
+            </button>
+            <button
+              onClick={testVoice}
+              className="px-4 py-2 rounded-md text-sm font-medium bg-zinc-800 text-zinc-200 border border-zinc-700 hover:bg-zinc-700 transition-colors"
+            >
+              Test Voice
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* RESPONSE TAB */}
+      {activeTab === 'Response' && (
+        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
+          <div className="grid grid-cols-2 gap-5">
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Match Count (RAG chunks)</label>
+              <input
+                type="number"
+                min={1}
+                max={50}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                value={matchCount}
+                onChange={e => setMatchCount(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-1.5">Chunk Max Chars</label>
+              <input
+                type="number"
+                min={500}
+                max={10000}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                value={chunkMaxChars}
+                onChange={e => setChunkMaxChars(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-2">
+                Similarity Threshold: <span className="text-zinc-300 font-mono">{similarityThreshold.toFixed(2)}</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                className="w-full accent-[var(--color-primary)]"
+                value={similarityThreshold}
+                onChange={e => setSimilarityThreshold(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-2">
+                Research Threshold: <span className="text-zinc-300 font-mono">{researchThreshold.toFixed(2)}</span>
+              </label>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                className="w-full accent-[var(--color-primary)]"
+                value={researchThreshold}
+                onChange={e => setResearchThreshold(Number(e.target.value))}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-t border-zinc-800">
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Auto-Research Enabled</p>
+              <p className="text-xs text-zinc-500">Automatically research knowledge gaps</p>
+            </div>
+            <button
+              onClick={() => setAutoResearch(!autoResearch)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${autoResearch ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${autoResearch ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between py-3 border-t border-zinc-800">
+            <div>
+              <p className="text-sm font-medium text-zinc-200">Market Data Enabled</p>
+              <p className="text-xs text-zinc-500">Include live market & weather data in context</p>
+            </div>
+            <button
+              onClick={() => setMarketEnabled(!marketEnabled)}
+              className={`relative h-6 w-11 rounded-full transition-colors ${marketEnabled ? 'bg-[var(--color-primary)]' : 'bg-zinc-700'}`}
+            >
+              <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${marketEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
+          {marketEnabled && (
+            <div className="grid grid-cols-3 gap-4 p-4 bg-zinc-800/50 rounded-lg border border-zinc-700">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Weather Location Name</label>
+                <input
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 focus:outline-none focus:border-[var(--color-primary)]"
+                  value={weatherName}
+                  onChange={e => setWeatherName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Latitude</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  value={weatherLat}
+                  onChange={e => setWeatherLat(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1.5">Longitude</label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
+                  value={weatherLng}
+                  onChange={e => setWeatherLng(Number(e.target.value))}
+                />
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={() => saveConfig({
+              rag: { matchCount, similarityThreshold, researchThreshold, chunkMaxChars },
+              market_data: {
+                enabled: marketEnabled,
+                weather_location: { name: weatherName, latitude: weatherLat, longitude: weatherLng },
+              },
+            })}
+            className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+          >
+            Save Response Settings
+          </button>
+        </div>
+      )}
+
+      {/* System Prompt Edit Modal */}
+      {showPromptModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+          <div className="bg-zinc-900 border border-zinc-700 rounded-lg w-[800px] max-h-[85vh] flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+              <p className="text-sm font-medium text-zinc-200">Edit System Prompt</p>
+              <button onClick={() => setShowPromptModal(false)} className="text-zinc-500 hover:text-zinc-300">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden p-4">
+              <textarea
+                className="w-full h-full bg-zinc-950 border border-zinc-800 rounded-md px-4 py-3 text-xs text-zinc-300 font-mono focus:outline-none focus:border-[var(--color-primary)] resize-none"
+                value={promptModalContent}
+                onChange={e => setPromptModalContent(e.target.value)}
+                style={{ minHeight: '400px' }}
+              />
+            </div>
+            <div className="flex justify-end gap-3 p-4 border-t border-zinc-800">
+              <button onClick={() => setShowPromptModal(false)} className="px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200">
+                Cancel
+              </button>
+              <button
+                onClick={saveSystemPrompt}
+                className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+              >
+                Save System Prompt
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
