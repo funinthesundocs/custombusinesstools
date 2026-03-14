@@ -1,62 +1,32 @@
 import { createClient } from '@supabase/supabase-js'
 import config from '../../config.json'
 import { buildSystemPrompt } from '../../../../config/system-prompt-template'
+import { selectFeedsForQuestion } from '../../../../config/live-data'
 
-let cachedMarketData: { data: any; fetchedAt: number } | null = null;
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000;
+let cachedLiveData: { feeds: Record<string, string>; fetchedAt: number } | null = null
+const LIVE_DATA_TTL_MS = 10 * 60 * 1000 // 10 minutes
 
-async function getMarketData(): Promise<string> {
-  const now = Date.now();
-  if (cachedMarketData && (now - cachedMarketData.fetchedAt) < CACHE_TTL_MS) {
-    return formatMarketData(cachedMarketData.data);
+async function getLiveDataBlock(question: string): Promise<string> {
+  const now = Date.now()
+  if (cachedLiveData && (now - cachedLiveData.fetchedAt) < LIVE_DATA_TTL_MS) {
+    return selectFeedsForQuestion(question, cachedLiveData.feeds)
   }
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) return '';
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseKey) return ''
     const res = await fetch(
       `${supabaseUrl}/rest/v1/market_data?order=fetched_at.desc&limit=1`,
       { headers: { 'apikey': supabaseKey, 'Authorization': `Bearer ${supabaseKey}` } }
-    );
-    const rows = await res.json();
-    if (rows && rows.length > 0) {
-      cachedMarketData = { data: rows[0], fetchedAt: now };
-      return formatMarketData(rows[0]);
+    )
+    const rows = await res.json()
+    if (rows?.length > 0) {
+      const feeds = rows[0].prices?.feeds || {}
+      cachedLiveData = { feeds, fetchedAt: now }
+      return selectFeedsForQuestion(question, feeds)
     }
   } catch {}
-  return '';
-}
-
-function formatMarketData(row: any): string {
-  let block = '';
-  const p = row.prices;
-  const w = row.weather;
-  const fetchedAt = new Date(row.fetched_at).toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
-  if (p && Object.keys(p).length > 0) {
-    block += `\n\n## CURRENT COMMODITY PRICES (updated ${fetchedAt} Manila time)`;
-    if (p.iron_ore_mt?.price) block += `\nIron Ore (62% Fe CFR China): ${p.iron_ore_mt.price}/MT`;
-    if (p.iron_concentrate?.price) block += `\nIron Concentrate (65% Fe): ${p.iron_concentrate.price}/MT`;
-    if (p.hot_rolled_coils?.price) block += `\nHot-Rolled Steel Coils: ${p.hot_rolled_coils.price}/MT`;
-    if (p.copper_ore_mt?.price) block += `\nCopper Ore: ${p.copper_ore_mt.price}/MT`;
-    if (p.copper_concentrate?.price) block += `\nCopper Concentrate: ${p.copper_concentrate.price}/MT`;
-    if (p.refined_copper?.price) block += `\nRefined Copper (LME): ${p.refined_copper.price}/MT`;
-    if (p.gold_oz?.price) block += `\nGold (spot): ${p.gold_oz.price}/oz`;
-    if (p.silver_oz?.price) block += `\nSilver (spot): ${p.silver_oz.price}/oz`;
-    block += `\nThese are real, recently fetched prices. Give the number when asked.`;
-  }
-  if (w && w.current) {
-    block += `\n\n## SITE WEATHER — ${w.location || config.market_data?.weather_location?.name || 'Site Location'}`;
-    block += `\nCurrent: ${w.current.condition}, ${w.current.temperature_c}°C, humidity ${w.current.humidity_pct}%, wind ${w.current.wind_kmh} km/h`;
-    if (w.current.precipitation_mm > 0) block += `, precipitation ${w.current.precipitation_mm}mm`;
-    if (w.forecast && w.forecast.length > 0) {
-      block += '\nForecast:';
-      for (const day of w.forecast) {
-        block += `\n  ${day.date}: ${day.condition}, ${day.low_c}-${day.high_c}°C, ${day.rain_probability_pct}% rain chance`;
-      }
-    }
-    block += `\nGive weather directly when asked.`;
-  }
-  return block;
+  return ''
 }
 
 async function writeAgentTask(task: {
@@ -102,7 +72,9 @@ export default async (req: Request) => {
     const { messages: incomingMessages, question, voice, isFollowUp } = await req.json()
     const messages = incomingMessages
 
-    const marketDataBlock = await getMarketData();
+    // Establish user message first so live data can keyword-match against it
+    const userMessage = question || messages?.[messages.length - 1]?.content || ''
+    const marketDataBlock = await getLiveDataBlock(userMessage)
 
     // RAG: embed question with Gemini Embedding 2 + retrieve from Pinecone
     let context = ''
@@ -110,7 +82,6 @@ export default async (req: Request) => {
     let lowConfidenceRAG = false
     let topScore = 0
     let ragChunksCount = 0
-    const userMessage = question || messages?.[messages.length - 1]?.content || ''
 
     try {
       const geminiApiKey = process.env.GEMINI_API_KEY

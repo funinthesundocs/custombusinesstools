@@ -91,8 +91,10 @@ ${ABOUT_YOUR_TECHNOLOGY(config)}
 ${MEETING_PREP_MODE()}
 
 ${YOUR_PERSONALITY(config)}
+
+${DATA_LOOKUP_GUIDANCE()}
 ${lengthGuidance ? '\n' + lengthGuidance : ''}
-${ragContext ? `\n---\n\nThe following context has been retrieved from the intelligence database based on relevance to the current question:\n\n${ragContext}` : ''}${marketData}${lowConfidenceGuidance}`.trim()
+${ragContext ? `\n---\n\nThe following context has been retrieved from the intelligence database based on relevance to the current question:\n\n${ragContext}` : ''}${marketData ? `\n\n---\n\n## LIVE DATA (retrieved fresh from verified sources — use this directly when asked)\n\n${marketData}` : ''}${lowConfidenceGuidance}`.trim()
 }
 
 // ---------------------------------------------------------------------------
@@ -244,6 +246,21 @@ function MEETING_PREP_MODE(): string {
   return `## MEETING PREP MODE
 
 [REPLACE — configure in deal.md. Define trigger phrases that activate this mode, describe the behavior shift, and provide the specific attendee profiles and coaching content for your engagement.]`
+}
+
+// [KEEP — universal data hierarchy rule. Never remove or weaken this.]
+function DATA_LOOKUP_GUIDANCE(): string {
+  return `## DATA LOOKUP HIERARCHY
+
+When answering any question, follow this order:
+
+1. **Knowledge base first** — check the retrieved context below. If it answers the question, use it.
+2. **Live data second** — if the question is about current prices, weather, news, rates, earthquakes, recalls, or any real-time data, check the LIVE DATA section below before doing anything else. If the data is there, answer from it directly and confidently.
+3. **web_search last** — only use web_search if neither the knowledge base nor live data can answer the question.
+
+When live data is present in your context: use it. State it confidently. Do not say "I don't have access to real-time data" if the answer is sitting in your live data section. That is an error.
+
+When a user asks about weather and no location is in the live data: ask "Which city are you asking about?" before answering.`
 }
 
 // [KEEP PATTERN — traits are universal; config drives name/company references]

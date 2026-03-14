@@ -43,12 +43,15 @@
   "supabase": {
     "project_id": "REPLACE_WITH_PROJECT_ID"
   },
-  "market_data": {
-    "enabled": false,
-    "weather_location": {
-      "name": "",
-      "latitude": 0,
-      "longitude": 0
+  "dataFeeds": {
+    "defaultLocation": "",
+    "baseCurrency": "USD",
+    "cryptoAssets": ["bitcoin", "ethereum", "solana"],
+    "earthquakeMinMagnitude": 4.0,
+    "apiKeys": {
+      "fred": "",
+      "gnews": "",
+      "alphaVantage": ""
     }
   },
   "rag": {
