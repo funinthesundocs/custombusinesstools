@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { COLOR_OPTIONS, getStoredColor, setStoredColor } from '@/lib/colors'
-import { Check, Database, Layers, Cpu, Cloud, Mic, BarChart3, ExternalLink } from 'lucide-react'
+import { Check, Database, Layers, Cpu, Cloud, Mic, BarChart3, ExternalLink, Play, RefreshCw } from 'lucide-react'
 import Link from 'next/link'
 
-type TabName = 'Appearance' | 'Connections' | 'RAG Config'
-const TABS: TabName[] = ['Appearance', 'Connections', 'RAG Config']
+type TabName = 'Appearance' | 'Connections' | 'RAG Config' | 'Market Data'
+const TABS: TabName[] = ['Appearance', 'Connections', 'RAG Config', 'Market Data']
 
 interface HealthData {
   supabase: { status: string; detail: string }
@@ -25,6 +25,12 @@ interface SiteConfig {
     embeddingDimensions: number
     pinecone: { indexName: string }
   }
+}
+
+interface MarketData {
+  timestamp: string
+  assets: Record<string, Record<string, { price?: number | null; funding_rate?: number | null; volume_24h?: number | null }>>
+  best_opportunities: Array<{ pair: string; exchange_a: string; exchange_b: string; spread_pct: number; asset: string }>
 }
 
 function StatusDot({ status }: { status: string }) {
@@ -62,6 +68,13 @@ export default function SettingsPage() {
   const [config, setConfig] = useState<SiteConfig | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
 
+  // Market scanner state
+  const [scanRunning, setScanRunning] = useState(false)
+  const [scanLog, setScanLog] = useState<string[]>([])
+  const [marketData, setMarketData] = useState<MarketData | null>(null)
+  const [marketLoading, setMarketLoading] = useState(false)
+  const scanLogRef = useRef<HTMLDivElement>(null)
+
   // RAG fields
   const [embeddingModel, setEmbeddingModel] = useState('')
   const [embeddingDimensions, setEmbeddingDimensions] = useState(3072)
@@ -94,6 +107,42 @@ export default function SettingsPage() {
     setHealthLoading(false)
   }, [])
 
+  const loadMarketData = useCallback(async () => {
+    setMarketLoading(true)
+    try {
+      const res = await fetch('/api/admin/market-scan')
+      if (res.ok) setMarketData(await res.json() as MarketData)
+    } catch { /* ignore */ }
+    setMarketLoading(false)
+  }, [])
+
+  const runScanner = useCallback(async () => {
+    setScanRunning(true)
+    setScanLog([])
+    try {
+      const res = await fetch('/api/admin/market-scan', { method: 'POST' })
+      if (!res.body) { setScanRunning(false); return }
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        const text = decoder.decode(value)
+        setScanLog(prev => {
+          const updated = [...prev, ...text.split('\n').filter(l => l.trim())]
+          setTimeout(() => {
+            if (scanLogRef.current) scanLogRef.current.scrollTop = scanLogRef.current.scrollHeight
+          }, 0)
+          return updated
+        })
+      }
+      await loadMarketData()
+    } catch (e) {
+      setScanLog(prev => [...prev, `[error] ${String(e)}`])
+    }
+    setScanRunning(false)
+  }, [loadMarketData])
+
   useEffect(() => {
     setCurrentColor(getStoredColor())
     loadConfig()
@@ -101,7 +150,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (activeTab === 'Connections') loadHealth()
-  }, [activeTab, loadHealth])
+    if (activeTab === 'Market Data') loadMarketData()
+  }, [activeTab, loadHealth, loadMarketData])
 
   const handleColorChange = (color: string) => {
     setCurrentColor(color)
@@ -327,6 +377,125 @@ export default function SettingsPage() {
           >
             Save RAG Config
           </button>
+        </div>
+      )}
+
+      {/* MARKET DATA TAB */}
+      {activeTab === 'Market Data' && (
+        <div className="space-y-4">
+          {/* Scanner Controls */}
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-sm font-semibold text-zinc-200">Multi-Exchange Scanner</h3>
+                <p className="text-xs text-zinc-500 mt-0.5">12 exchanges · 20 assets · no API keys required</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={loadMarketData}
+                  disabled={marketLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium border border-zinc-700 text-zinc-300 hover:border-zinc-600 hover:text-zinc-100 transition-colors disabled:opacity-40"
+                >
+                  <RefreshCw size={12} className={marketLoading ? 'animate-spin' : ''} />
+                  Refresh
+                </button>
+                <button
+                  onClick={runScanner}
+                  disabled={scanRunning}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity disabled:opacity-40"
+                >
+                  <Play size={12} />
+                  {scanRunning ? 'Running...' : 'Run Scanner'}
+                </button>
+              </div>
+            </div>
+
+            {/* Terminal */}
+            {scanLog.length > 0 && (
+              <div
+                ref={scanLogRef}
+                className="h-48 overflow-y-auto bg-zinc-950 rounded-md border border-zinc-800 p-3 font-mono text-xs text-zinc-400 space-y-0.5"
+              >
+                {scanLog.map((line, i) => (
+                  <div
+                    key={i}
+                    className={
+                      line.startsWith('[done]') ? 'text-emerald-400' :
+                      line.startsWith('[error]') ? 'text-red-400' :
+                      line.startsWith('[warn]') ? 'text-amber-400' :
+                      line.startsWith('[info]') ? 'text-blue-400' :
+                      line.startsWith('[stderr]') ? 'text-orange-400' :
+                      'text-zinc-400'
+                    }
+                  >
+                    {line}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Last Scan Data */}
+          {marketData ? (
+            <>
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-zinc-200">Asset Prices</h3>
+                  <span className="text-[10px] text-zinc-500 font-mono">
+                    {new Date(marketData.timestamp).toLocaleString()}
+                  </span>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  {Object.entries(marketData.assets).slice(0, 20).map(([symbol, exchanges]) => {
+                    const prices = Object.values(exchanges)
+                      .map(e => e?.price)
+                      .filter((p): p is number => typeof p === 'number' && p > 0)
+                    const median = prices.length > 0
+                      ? [...prices].sort((a, b) => a - b)[Math.floor(prices.length / 2)]
+                      : null
+                    const displaySymbol = symbol.replace('USDT', '')
+                    return (
+                      <div key={symbol} className="rounded-md border border-zinc-800 bg-zinc-800/40 px-3 py-2">
+                        <p className="text-[10px] text-zinc-500 font-mono">{displaySymbol}</p>
+                        <p className="text-sm font-semibold text-zinc-100 font-mono">
+                          {median != null
+                            ? median >= 1000
+                              ? `$${median.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+                              : median >= 1
+                                ? `$${median.toFixed(2)}`
+                                : `$${median.toFixed(4)}`
+                            : '—'}
+                        </p>
+                        <p className="text-[9px] text-zinc-600">{prices.length} exchange{prices.length !== 1 ? 's' : ''}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {marketData.best_opportunities?.length > 0 && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                  <h3 className="text-sm font-semibold text-zinc-200 mb-3">Best Arbitrage Opportunities</h3>
+                  <div className="space-y-2">
+                    {marketData.best_opportunities.slice(0, 5).map((opp, i) => (
+                      <div key={i} className="flex items-center gap-4 p-2 rounded-md border border-zinc-800 bg-zinc-800/30">
+                        <span className="text-xs font-mono font-semibold text-zinc-200 w-12">{opp.asset ?? opp.pair?.split('/')[0] ?? '—'}</span>
+                        <span className="text-xs text-zinc-500">{opp.exchange_a} → {opp.exchange_b}</span>
+                        <span className="ml-auto text-xs font-mono font-semibold text-emerald-400">
+                          +{typeof opp.spread_pct === 'number' ? opp.spread_pct.toFixed(3) : '?'}%
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center">
+              <BarChart3 size={24} className="text-zinc-600 mx-auto mb-2" />
+              <p className="text-sm text-zinc-500">No scan data yet. Run the scanner to fetch live market prices.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

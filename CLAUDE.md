@@ -1,9 +1,17 @@
 # RAG Factory
 
+## READ FIRST — BEFORE ANY IMPLEMENTATION
+Read `VISION.md` in full before designing any feature, architecture, or solution.
+VISION.md contains the governing intent, the five decision filters, and the eagle view
+test that every change must pass. It exists specifically because Claude loses macro
+perspective when deep in implementation. Do not skip it.
+
 ## What This Is
-A system that gathers intelligence, processes documents, engineers context,
-and routes production tasks to the optimal AI model — producing meeting-ready
-materials for high-stakes business engagements.
+A **universal AI agent template** — deployable by any business or individual.
+The current repo contains a working instance. The goal is a reusable template
+that the 1,000th deployer benefits from as much as the first.
+
+See `VISION.md` for the full governing intent.
 
 ## Architecture
 - **Opus** = Brain (context engineer, production router, agent coordinator)
