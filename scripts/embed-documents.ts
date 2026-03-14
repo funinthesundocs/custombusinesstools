@@ -23,7 +23,7 @@ if (!PROJECT_ID)       throw new Error("PROJECT_ID not set");
 const appConfig        = JSON.parse(fs.readFileSync(path.resolve(__dirname, "..", "config.json"), "utf8"));
 const EMBEDDING_MODEL  = appConfig.rag?.embeddingModel  ?? "models/gemini-embedding-2-preview";
 const EMBEDDING_DIMS   = appConfig.rag?.embeddingDimensions ?? 3072;
-const INDEX_NAME       = appConfig.rag?.pinecone?.indexName ?? "kop-intelligence";
+const INDEX_NAME       = appConfig.rag?.pinecone?.indexName ?? "rag-factory";
 const STORAGE_BUCKET   = "deal-media";
 const MAX_CHUNK_CHARS  = appConfig.rag?.chunkMaxChars   ?? 1600;
 const CHILD_CHUNK_CHARS = appConfig.rag?.childChunkChars ?? 400;

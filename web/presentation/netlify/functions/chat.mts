@@ -353,9 +353,12 @@ export default async (req: Request) => {
     // Manual stream relay: forward chunks, emit research_pending at end
     const reader = anthropicRes.body!.getReader()
     let responseText = ''
-    // Pre-suppress mid-stream uncertainty detection when we already injected live data.
-    // The agent may still say "I'm pulling it up" out of habit but we don't want spurious research.
-    let uncertaintyResearchFired = hasOnDemandWeather;
+    // suppressUncertaintyDetection: blocks mid-stream phrase check when live weather data was
+    // already injected — the agent may say "pulling it up" out of habit even when data is present.
+    const suppressUncertaintyDetection = hasOnDemandWeather
+    // uncertaintyResearchFired: set to true ONLY when a genuine uncertainty phrase is detected
+    // during streaming. Starts false regardless of weather state.
+    let uncertaintyResearchFired = false
 
     const stream = new ReadableStream({
       async pull(controller) {
@@ -464,7 +467,7 @@ export default async (req: Request) => {
                 }
               }
             }
-            if (!uncertaintyResearchFired && !lowConfidenceRAG && !isFollowUp) {
+            if (!uncertaintyResearchFired && !suppressUncertaintyDetection && !lowConfidenceRAG && !isFollowUp) {
               const lowerResponse = responseText.toLowerCase();
               const uncertaintyPhrases = ["outside what i have", "don't have information", "outside my knowledge", "that's outside", "you'd want to ask", "you'd want to check", "check with the", "i don't know", "don't have that on hand", "pulling it up for you", "i'm pulling it up", "don't have that"];
               if (uncertaintyPhrases.some(p => lowerResponse.includes(p))) {

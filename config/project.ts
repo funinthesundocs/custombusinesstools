@@ -50,27 +50,32 @@ export type ProjectConfig = {
     mono: string
   }
   supabase: {
-    deal_id: string
+    project_id: string
   }
-  market_data: {
-    enabled: boolean
-    weather_location: { name: string; latitude: number; longitude: number }
+  dataFeeds: {
+    defaultLocation: string
+    baseCurrency: string
+    cryptoAssets: string[]
+    earthquakeMinMagnitude: number
+    stockSymbols: string[]
+    sportsLeagues: string[]
+    apiKeys: {
+      fred: string
+      gnews: string
+      alphaVantage: string
+    }
   }
-  nav_links: Array<{ label: string; href: string }>
   rag: {
     embeddingModel: string
     embeddingDimensions: number
     matchCount: number
     similarityThreshold: number
+    researchThreshold: number
     chunkMaxChars: number
+    childChunkChars: number
+    pinecone: {
+      indexName: string
+    }
   }
-  content: {
-    dealContextPath: string
-    sourceDocumentsDir: string
-  }
-  deal: {
-    industry: string
-    meetingMode: boolean
-    targetName: string
-  }
+  nav_links: Array<{ label: string; href: string }>
 }
