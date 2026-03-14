@@ -34,7 +34,7 @@ export async function geocodeLocation(name: string): Promise<{ lat: number; lon:
   try {
     const res = await fetch(
       `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(name)}&count=1&language=en&format=json`,
-      { signal: AbortSignal.timeout(4000) }
+      { signal: AbortSignal.timeout(8000) }
     )
     const d = await res.json()
     const r = d.results?.[0]
@@ -44,7 +44,8 @@ export async function geocodeLocation(name: string): Promise<{ lat: number; lon:
       lon: r.longitude,
       display: r.country_code ? `${r.name}, ${r.admin1 || r.country}` : r.name
     }
-  } catch {
+  } catch (e) {
+    console.error('[live-data] geocodeLocation failed:', e)
     return null
   }
 }
@@ -71,7 +72,7 @@ export async function fetchWeather(location: string): Promise<string> {
       `&current=temperature_2m,relative_humidity_2m,precipitation,weather_code,wind_speed_10m` +
       `&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,weather_code` +
       `&timezone=auto&forecast_days=3`,
-      { signal: AbortSignal.timeout(5000) }
+      { signal: AbortSignal.timeout(8000) }
     )
     const d = await res.json()
     const c = d.current
@@ -110,7 +111,7 @@ export async function fetchAirQuality(location: string): Promise<string> {
     const res = await fetch(
       `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}` +
       `&current=european_aqi,pm10,pm2_5,nitrogen_dioxide,ozone`,
-      { signal: AbortSignal.timeout(5000) }
+      { signal: AbortSignal.timeout(8000) }
     )
     const d = await res.json()
     const c = d.current
@@ -319,7 +320,7 @@ export async function fetchSunrise(location: string): Promise<string> {
     }
     const res = await fetch(
       `https://api.sunrisesunset.io/json?lat=${lat}&lng=${lon}&timezone=auto`,
-      { signal: AbortSignal.timeout(4000) }
+      { signal: AbortSignal.timeout(8000) }
     )
     const d = await res.json()
     if (!d.results) return ''
