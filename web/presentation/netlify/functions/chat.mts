@@ -118,6 +118,7 @@ export default async (req: Request) => {
     // RAG: embed question with Gemini Embedding 2 + retrieve from Pinecone
     let context = ''
     let mediaResults: Array<{ modality: string; url: string; caption: string; score: number }> = []
+    let ragCitations: Array<{ source_title: string; source_file: string; section_heading: string; page_number: number | null; score: number }> = []
     let lowConfidenceRAG = false
     let topScore = 0
     let ragChunksCount = 0
@@ -187,15 +188,31 @@ export default async (req: Request) => {
           }
 
           // Split by modality: text → context, images/video → mediaResults
-          const textMatches = freshMatches.filter((m: any) =>
+          const textRaw = freshMatches.filter((m: any) =>
             !m.metadata?.modality || m.metadata.modality === 'text'
           )
           const mediaMatches = freshMatches.filter((m: any) =>
             m.metadata?.modality === 'image' || m.metadata?.modality === 'video'
           )
 
-          context = textMatches
-            .map((m: any) => `[${m.metadata?.track || 'source'} | score: ${m.score?.toFixed(3)}]\n${m.metadata?.content || ''}`)
+          // Dedup child vectors by parent_id — keep only the highest-scoring child per parent.
+          // This prevents the same section from appearing multiple times in context.
+          const seenParents = new Map<string, any>()
+          for (const m of textRaw) {
+            const pid = m.metadata?.parent_id || m.id
+            const existing = seenParents.get(pid)
+            if (!existing || (m.score || 0) > (existing.score || 0)) {
+              seenParents.set(pid, m)
+            }
+          }
+          const dedupedTextMatches = Array.from(seenParents.values())
+            .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
+            .slice(0, 8)
+
+          // Use parent_content (full section ~1600 chars) for context injection when available.
+          // Fall back to content (child snippet) for old flat vectors.
+          context = dedupedTextMatches
+            .map((m: any) => `[${m.metadata?.track || 'source'}|${m.metadata?.source_title || m.metadata?.source_file || 'document'}|score:${m.score?.toFixed(3)}]\n${m.metadata?.parent_content || m.metadata?.content || ''}`)
             .join('\n\n---\n\n')
 
           mediaResults = mediaMatches
@@ -205,6 +222,17 @@ export default async (req: Request) => {
               url: m.metadata.storage_url,
               caption: m.metadata.content || '',
               score: m.score,
+            }))
+
+          // Build citation list from deduped text matches for the UI Sources panel
+          ragCitations = dedupedTextMatches
+            .filter((m: any) => m.score >= 0.4)
+            .map((m: any) => ({
+              source_title: m.metadata?.source_title || m.metadata?.source_file || 'Document',
+              source_file: m.metadata?.source_file || '',
+              section_heading: m.metadata?.section_heading || '',
+              page_number: m.metadata?.page_number ?? null,
+              score: Math.round((m.score || 0) * 1000) / 1000,
             }))
         }
       }
@@ -339,6 +367,12 @@ export default async (req: Request) => {
             if (mediaResults.length > 0) {
               const mediaSignal = `data: ${JSON.stringify({ type: 'media_results', results: mediaResults })}\n\n`;
               controller.enqueue(new TextEncoder().encode(mediaSignal));
+            }
+
+            // Emit citations for the Sources panel
+            if (ragCitations.length > 0) {
+              const citationsSignal = `data: ${JSON.stringify({ type: 'citations', citations: ragCitations })}\n\n`;
+              controller.enqueue(new TextEncoder().encode(citationsSignal));
             }
 
             // Emit research_pending signal before closing

@@ -25,10 +25,10 @@ const EMBEDDING_MODEL  = appConfig.rag?.embeddingModel  ?? "models/gemini-embedd
 const EMBEDDING_DIMS   = appConfig.rag?.embeddingDimensions ?? 3072;
 const INDEX_NAME       = appConfig.rag?.pinecone?.indexName ?? "kop-intelligence";
 const STORAGE_BUCKET   = "deal-media";
-const MAX_CHUNK_CHARS  = appConfig.rag?.chunkMaxChars   ?? 3200;
+const MAX_CHUNK_CHARS  = appConfig.rag?.chunkMaxChars   ?? 1600;
+const CHILD_CHUNK_CHARS = appConfig.rag?.childChunkChars ?? 400;
 
 // Directories to scan (relative to project root)
-// Drop any file type into knowledge/ and it gets embedded automatically.
 const SCAN_DIRS = [
   "knowledge",
 ];
@@ -46,13 +46,6 @@ const SKIP_PATTERNS = [
   ".gitkeep", "README.md",
 ];
 
-// Track assignment — derived from subfolder under knowledge/
-// knowledge/documents/ → "documents"
-// knowledge/media/     → "media"
-// knowledge/text/      → "text"
-// Subfolders you create become track names automatically.
-const TRACK_MAP: Record<string, string> = {};
-
 // ─── Clients ─────────────────────────────────────────────────────────────────
 
 const pinecone = new Pinecone({ apiKey: PINECONE_API_KEY });
@@ -61,55 +54,147 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getTrack(filePath: string): string {
-  // Use the immediate subfolder under knowledge/ as the track name.
-  // e.g. knowledge/documents/foo.pdf → "documents"
-  //      knowledge/media/bar.jpg     → "media"
-  //      knowledge/foo.pdf           → "general"
   const normalized = filePath.replace(/\\/g, "/");
   const match = normalized.match(/knowledge\/([^/]+)\//);
   return match ? match[1] : "general";
 }
 
-function makeVectorId(filePath: string, index: number): string {
-  // Deterministic ID — re-running overwrites (upserts) existing vectors
+function makeParentId(filePath: string, chunkIndex: number): string {
   const rel = filePath.replace(/\\/g, "/");
-  return `${PROJECT_ID}::${rel}::${index}`;
+  return `${PROJECT_ID}::${rel}::p::${chunkIndex}`;
 }
 
-function chunkText(text: string, sourceFile: string): string[] {
-  const sections = text.split(/(?=^## )/m);
-  const chunks: string[] = [];
+function makeChildId(filePath: string, chunkIndex: number, childIndex: number): string {
+  const rel = filePath.replace(/\\/g, "/");
+  return `${PROJECT_ID}::${rel}::c::${chunkIndex}::${childIndex}`;
+}
 
-  for (const section of sections) {
-    const trimmed = section.trim();
-    if (!trimmed) continue;
+/** Turn a filename into a human-readable title: "company-overview.md" → "Company Overview" */
+function deriveSourceTitle(filename: string): string {
+  return filename
+    .replace(/\.[^.]+$/, "")         // strip extension
+    .replace(/[-_]/g, " ")           // dashes/underscores → spaces
+    .replace(/\b\w/g, c => c.toUpperCase()); // title case
+}
 
-    if (trimmed.length <= MAX_CHUNK_CHARS) {
-      chunks.push(`[Source: ${sourceFile}]\n\n${trimmed}`);
+/** Split a parent text into child-sized pieces, preferring sentence boundaries */
+function splitIntoChildren(text: string, maxChars: number): string[] {
+  if (text.length <= maxChars) return [text];
+  const children: string[] = [];
+  // Split on sentence-ending punctuation + whitespace
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  let current = "";
+  for (const sentence of sentences) {
+    if (current.length + sentence.length > maxChars && current) {
+      children.push(current.trim());
+      current = "";
+    }
+    current += (current ? " " : "") + sentence;
+  }
+  if (current.trim()) children.push(current.trim());
+  return children.filter(c => c.length > 20);
+}
+
+// ─── Parent-Child Chunk Result ────────────────────────────────────────────────
+
+interface ChunkResult {
+  /** Full section text (~1600 chars) — injected verbatim into the LLM context */
+  parentText: string;
+  /** Sub-chunks (~400 chars each) — embedded for precision retrieval */
+  children: string[];
+  /** ## heading for this section (empty string if none) */
+  sectionHeading: string;
+  /** Page number from PDF page markers (null for plain text files) */
+  pageNumber: number | null;
+  /** Sequential index across all chunks in this document */
+  chunkIndex: number;
+}
+
+/**
+ * Chunk text into parent-child pairs with full citation provenance.
+ *
+ * Algorithm:
+ *  1. Scan line-by-line, tracking current page from "--- PAGE N ---" markers (PDFs only).
+ *  2. At each "## heading", flush the accumulated section as a new parent chunk.
+ *  3. If a section exceeds MAX_CHUNK_CHARS, split further on "### " sub-headings.
+ *  4. Split each parent into CHILD_CHUNK_CHARS children for precision embedding.
+ */
+function chunkText(text: string, sourceFile: string): ChunkResult[] {
+  const results: ChunkResult[] = [];
+  let globalChunkIndex = 0;
+  let currentPage: number | null = null;
+  let currentLines: string[] = [];
+  let currentHeading = "";
+  let sectionPage: number | null = null;
+
+  const flushSection = () => {
+    const rawText = currentLines.join("\n").trim();
+    if (!rawText || rawText.length < 50) {
+      currentLines = [];
+      currentHeading = "";
+      return;
+    }
+
+    // Split oversized sections on ### sub-headings
+    const parentChunks: string[] = [];
+    if (rawText.length <= MAX_CHUNK_CHARS) {
+      parentChunks.push(rawText);
     } else {
-      // Try ### sub-sections first
-      const subs = trimmed.split(/(?=^### )/m);
+      const subs = rawText.split(/(?=^### )/m);
       let current = "";
       for (const sub of subs) {
         if (current.length + sub.length > MAX_CHUNK_CHARS && current) {
-          chunks.push(`[Source: ${sourceFile}]\n\n${current.trim()}`);
+          parentChunks.push(current.trim());
           current = "";
         }
         current += (current ? "\n\n" : "") + sub;
       }
-      if (current.trim()) {
-        chunks.push(`[Source: ${sourceFile}]\n\n${current.trim()}`);
-      }
+      if (current.trim()) parentChunks.push(current.trim());
+    }
+
+    for (const parentText of parentChunks) {
+      const children = splitIntoChildren(parentText, CHILD_CHUNK_CHARS);
+      results.push({
+        parentText: `[Source: ${sourceFile}]\n\n${parentText}`,
+        children,
+        sectionHeading: currentHeading,
+        pageNumber: sectionPage,
+        chunkIndex: globalChunkIndex++,
+      });
+    }
+
+    currentLines = [];
+    currentHeading = "";
+  };
+
+  for (const line of text.split("\n")) {
+    // Page marker (Gemini PDF extraction inserts "--- PAGE N ---")
+    const pageMatch = line.match(/^---\s*PAGE\s+(\d+)\s*---$/);
+    if (pageMatch) {
+      currentPage = parseInt(pageMatch[1], 10);
+      continue; // do not include marker in text
+    }
+
+    // New ## section heading — flush previous section
+    if (line.match(/^## /)) {
+      flushSection();
+      currentHeading = line.replace(/^## /, "").trim();
+      sectionPage = currentPage;
+      currentLines = [line];
+    } else {
+      currentLines.push(line);
     }
   }
 
-  return chunks.filter(c => c.trim().length > 50);
+  // Flush the last accumulated section
+  flushSection();
+
+  return results.filter(r => r.parentText.trim().length > 50);
 }
 
 // ─── Gemini Embedding API ─────────────────────────────────────────────────────
 
 async function embedText(texts: string[]): Promise<number[][]> {
-  // Batch endpoint for text (up to 100 per request)
   const BATCH_SIZE = 20;
   const allEmbeddings: number[][] = [];
 
@@ -136,7 +221,6 @@ async function embedText(texts: string[]): Promise<number[][]> {
 
     const data = await res.json();
     if (!data.embeddings) {
-      // fallback to single embedContent if batch not supported
       console.log("  Batch not supported, falling back to single calls...");
       for (const text of batch) {
         const emb = await embedSingle({ text });
@@ -208,7 +292,6 @@ async function upsertVectors(vectors: Array<{
   metadata: Record<string, any>;
 }>): Promise<void> {
   const index = pinecone.index(INDEX_NAME).namespace(PROJECT_ID);
-  // Pinecone SDK v7: upsert takes { records: [...] }
   for (let i = 0; i < vectors.length; i += 100) {
     await index.upsert({ records: vectors.slice(i, i + 100) } as any);
   }
@@ -216,9 +299,15 @@ async function upsertVectors(vectors: Array<{
 
 // ─── File Processors ──────────────────────────────────────────────────────────
 
+/**
+ * Process a text/markdown file with parent-child chunking.
+ * Each parent chunk gets one vector (for context injection).
+ * Each child chunk gets one vector (for precision retrieval) with parent_content in metadata.
+ */
 async function processTextFile(filePath: string): Promise<number> {
   const content = fs.readFileSync(filePath, "utf-8");
   const sourceFile = path.basename(filePath);
+  const sourceTitle = deriveSourceTitle(sourceFile);
   const track = getTrack(filePath);
   const chunks = chunkText(content, sourceFile);
 
@@ -227,33 +316,65 @@ async function processTextFile(filePath: string): Promise<number> {
     return 0;
   }
 
-  const embeddings = await embedText(chunks);
-  const vectors = chunks.map((chunk, i) => ({
-    id: makeVectorId(filePath, i),
-    values: embeddings[i],
-    metadata: {
-      modality: "text",
-      content: chunk.slice(0, 1000), // Pinecone metadata limit
-      source_file: sourceFile,
-      chunk_index: i,
-      project_id: PROJECT_ID,
-      track,
-    },
-  }));
+  console.log(`  ${chunks.length} parent chunks → ${chunks.reduce((s, c) => s + c.children.length, 0)} child vectors`);
 
-  await upsertVectors(vectors);
-  return vectors.length;
+  const allVectors: Array<{ id: string; values: number[]; metadata: Record<string, any> }> = [];
+
+  // Build all texts to embed in one batch pass (children only — children are what we retrieve)
+  // Parents are stored as metadata on the children; we do NOT embed parents separately.
+  const childTexts: string[] = [];
+  const childMeta: Array<{ chunkIndex: number; childIndex: number; parentText: string; sectionHeading: string; pageNumber: number | null }> = [];
+
+  for (const chunk of chunks) {
+    for (let ci = 0; ci < chunk.children.length; ci++) {
+      childTexts.push(chunk.children[ci]);
+      childMeta.push({
+        chunkIndex: chunk.chunkIndex,
+        childIndex: ci,
+        parentText: chunk.parentText,
+        sectionHeading: chunk.sectionHeading,
+        pageNumber: chunk.pageNumber,
+      });
+    }
+  }
+
+  const embeddings = await embedText(childTexts);
+
+  for (let i = 0; i < childTexts.length; i++) {
+    const meta = childMeta[i];
+    const parentId = makeParentId(filePath, meta.chunkIndex);
+    const childId = makeChildId(filePath, meta.chunkIndex, meta.childIndex);
+    allVectors.push({
+      id: childId,
+      values: embeddings[i],
+      metadata: {
+        modality: "text",
+        content: childTexts[i].slice(0, 400),           // child text for display
+        parent_content: meta.parentText.slice(0, 2000), // full parent for context injection
+        parent_id: parentId,
+        source_file: sourceFile,
+        source_title: sourceTitle,
+        section_heading: meta.sectionHeading,
+        page_number: meta.pageNumber,
+        chunk_index: meta.chunkIndex,
+        child_index: meta.childIndex,
+        project_id: PROJECT_ID,
+        track,
+        is_parent: false,
+      },
+    });
+  }
+
+  await upsertVectors(allVectors);
+  return allVectors.length;
 }
 
 // ─── Gemini Files API — PDF text extraction ──────────────────────────────────
-// Uses Gemini's multimodal understanding: reads tables, charts, and diagrams
-// in addition to plain text. Far superior to a raw PDF text parser.
 
 async function uploadPdfToGemini(filePath: string): Promise<string> {
   const buffer = fs.readFileSync(filePath);
   const mimeType = "application/pdf";
 
-  // Step 1: initiate resumable upload
   const initRes = await fetch(
     `https://generativelanguage.googleapis.com/upload/v1beta/files?uploadType=resumable&key=${GEMINI_API_KEY}`,
     {
@@ -272,7 +393,6 @@ async function uploadPdfToGemini(filePath: string): Promise<string> {
   const uploadUrl = initRes.headers.get("x-goog-upload-url");
   if (!uploadUrl) throw new Error("No upload URL returned from Gemini Files API");
 
-  // Step 2: upload bytes
   const uploadRes = await fetch(uploadUrl, {
     method: "POST",
     headers: {
@@ -302,9 +422,14 @@ async function extractPdfTextViaGemini(fileUri: string, sourceFile: string): Pro
             },
             {
               text: `Extract ALL content from this document into clean, structured text.
+
+CRITICAL: Insert a page marker at the start of each page's content in EXACTLY this format:
+--- PAGE N ---
+(where N is the page number, starting from 1)
+
 Include: all text, table data (formatted as markdown tables), descriptions of charts/diagrams,
 captions, headers, and any other meaningful content.
-Preserve the logical structure with headings.
+Preserve the logical structure with markdown headings (## for major sections, ### for sub-sections).
 Document: ${sourceFile}`
             }
           ]
@@ -322,42 +447,76 @@ Document: ${sourceFile}`
 
 async function processPdfFile(filePath: string): Promise<number> {
   const sourceFile = path.basename(filePath);
+  const sourceTitle = deriveSourceTitle(sourceFile);
   const track = getTrack(filePath);
   let total = 0;
 
-  // Step 1: Upload PDF to Gemini Files API and extract text via multimodal LLM
   console.log(`  Uploading PDF to Gemini Files API...`);
   try {
     const fileUri = await uploadPdfToGemini(filePath);
-    console.log(`  Extracting text via Gemini multimodal...`);
-    await delay(2000); // allow file processing
+    console.log(`  Extracting text via Gemini multimodal (with page markers)...`);
+    await delay(2000);
     const pdfText = await extractPdfTextViaGemini(fileUri, sourceFile);
     console.log(`  Extracted ${pdfText.length} chars`);
 
     const chunks = chunkText(pdfText, sourceFile);
     if (chunks.length === 0) throw new Error("No chunks extracted — check PDF content");
-    const embeddings = await embedText(chunks);
-    const textVectors = chunks.map((chunk, i) => ({
-      id: makeVectorId(filePath + ":text", i),
-      values: embeddings[i],
-      metadata: {
-        modality: "text",
-        content: chunk.slice(0, 1000),
-        source_file: sourceFile,
-        chunk_index: i,
-        project_id: PROJECT_ID,
-        track,
-        source_type: "pdf-gemini",
-      },
-    }));
-    await upsertVectors(textVectors);
-    total += textVectors.length;
-    console.log(`  ✓ ${textVectors.length} chunks embedded`);
+
+    console.log(`  ${chunks.length} parent chunks → ${chunks.reduce((s, c) => s + c.children.length, 0)} child vectors`);
+
+    const allVectors: Array<{ id: string; values: number[]; metadata: Record<string, any> }> = [];
+    const childTexts: string[] = [];
+    const childMeta: Array<{ chunkIndex: number; childIndex: number; parentText: string; sectionHeading: string; pageNumber: number | null }> = [];
+
+    for (const chunk of chunks) {
+      for (let ci = 0; ci < chunk.children.length; ci++) {
+        childTexts.push(chunk.children[ci]);
+        childMeta.push({
+          chunkIndex: chunk.chunkIndex,
+          childIndex: ci,
+          parentText: chunk.parentText,
+          sectionHeading: chunk.sectionHeading,
+          pageNumber: chunk.pageNumber,
+        });
+      }
+    }
+
+    const embeddings = await embedText(childTexts);
+
+    for (let i = 0; i < childTexts.length; i++) {
+      const meta = childMeta[i];
+      const parentId = makeParentId(filePath + ":text", meta.chunkIndex);
+      const childId = makeChildId(filePath + ":text", meta.chunkIndex, meta.childIndex);
+      allVectors.push({
+        id: childId,
+        values: embeddings[i],
+        metadata: {
+          modality: "text",
+          content: childTexts[i].slice(0, 400),
+          parent_content: meta.parentText.slice(0, 2000),
+          parent_id: parentId,
+          source_file: sourceFile,
+          source_title: sourceTitle,
+          section_heading: meta.sectionHeading,
+          page_number: meta.pageNumber,
+          chunk_index: meta.chunkIndex,
+          child_index: meta.childIndex,
+          project_id: PROJECT_ID,
+          track,
+          is_parent: false,
+          source_type: "pdf-gemini",
+        },
+      });
+    }
+
+    await upsertVectors(allVectors);
+    total += allVectors.length;
+    console.log(`  ✓ ${allVectors.length} child vectors embedded`);
   } catch (e: any) {
     console.error(`  ✗ PDF extraction failed: ${e.message}`);
   }
 
-  // Step 2: Upload PDF to Supabase Storage for reference/download
+  // Upload PDF to Supabase Storage for reference/download
   try {
     const storagePath = `${PROJECT_ID}/documents/${sourceFile}`;
     const storageUrl = await uploadToStorage(filePath, storagePath, "application/pdf");
@@ -375,22 +534,21 @@ async function processImageFile(filePath: string): Promise<number> {
   const mimeType = getMimeType(ext);
   const track = getTrack(filePath);
 
-  // Upload to Supabase Storage
   const storagePath = `${PROJECT_ID}/images/${sourceFile}`;
   const storageUrl = await uploadToStorage(filePath, storagePath, mimeType);
   console.log(`  Uploaded to storage: ${storageUrl}`);
 
-  // Embed multimodally
   const base64 = fs.readFileSync(filePath).toString("base64");
   const embedding = await embedSingle({ imageBase64: base64, mimeType });
 
   const vector = {
-    id: makeVectorId(filePath, 0),
+    id: makeChildId(filePath, 0, 0),
     values: embedding,
     metadata: {
       modality: "image",
       content: `[Image: ${sourceFile}]`,
       source_file: sourceFile,
+      source_title: deriveSourceTitle(sourceFile),
       storage_url: storageUrl,
       project_id: PROJECT_ID,
       track,
@@ -430,11 +588,12 @@ function delay(ms: number) {
 
 async function main() {
   console.log("═══════════════════════════════════════════════");
-  console.log("  RAG Factory Multimodal Embed — Pinecone + Gemini 2");
+  console.log("  RAG Factory Multimodal Embed — Parent-Child Architecture");
   console.log("═══════════════════════════════════════════════");
-  console.log(`Model:   ${EMBEDDING_MODEL} (${EMBEDDING_DIMS} dims)`);
-  console.log(`Index:   ${INDEX_NAME} / namespace: ${PROJECT_ID}`);
-  console.log(`Deal ID: ${PROJECT_ID}\n`);
+  console.log(`Model:    ${EMBEDDING_MODEL} (${EMBEDDING_DIMS} dims)`);
+  console.log(`Index:    ${INDEX_NAME} / namespace: ${PROJECT_ID}`);
+  console.log(`Chunks:   parent=${MAX_CHUNK_CHARS}c / child=${CHILD_CHUNK_CHARS}c`);
+  console.log(`Deal ID:  ${PROJECT_ID}\n`);
 
   const projectRoot = path.resolve(__dirname, "..");
   const allFiles: string[] = [];
@@ -448,7 +607,7 @@ async function main() {
   console.log(`\nTotal files to process: ${allFiles.length}\n`);
 
   if (allFiles.length === 0) {
-    console.log("No files found. Add documents to intelligence/ or production/source-documents/");
+    console.log("No files found. Add documents to knowledge/");
     return;
   }
 

@@ -15,12 +15,21 @@ interface DbMessage {
   created_at: string
 }
 
+interface Citation {
+  source_title: string
+  source_file: string
+  section_heading: string
+  page_number: number | null
+  score: number
+}
+
 interface Message {
   id?: string
   role: 'user' | 'assistant'
   content: string
   sender_name?: string
   created_at?: string
+  citations?: Citation[]
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -388,6 +397,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
     setMessages([...updatedMessages, assistantMessage])
 
     let sentencesSent = 0
+    let currentCitations: Citation[] = []
     let audioQueue: AudioQueue | null = null
     console.log('TTS: Voice enabled:', voiceEnabledRef.current)
     if (voiceEnabledRef.current) {
@@ -536,6 +546,9 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
                   })();
                 }
               }
+              if (parsed.type === 'citations') {
+                currentCitations = parsed.citations || []
+              }
               if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
                 assistantContent += parsed.delta.text
                 setMessages(prev => {
@@ -570,6 +583,7 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
             content: assistantContent,
             id: savedAssistant?.id,
             created_at: savedAssistant?.created_at,
+            citations: currentCitations.length > 0 ? currentCitations : undefined,
           }
           return updated
         })
@@ -789,6 +803,23 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
                         <span className="w-1.5 h-1.5 bg-brand-gold rounded-full animate-pulse [animation-delay:150ms]" />
                         <span className="w-1.5 h-1.5 bg-brand-gold rounded-full animate-pulse [animation-delay:300ms]" />
                       </span>
+                    )}
+                    {msg.citations && msg.citations.length > 0 && !isStreaming && (
+                      <details className="mt-2 text-[11px]">
+                        <summary className="cursor-pointer text-text-muted hover:text-brand-navy select-none list-none flex items-center gap-1">
+                          <span className="inline-block w-3 h-3 text-center leading-none">▸</span>
+                          <span>{msg.citations.length} source{msg.citations.length > 1 ? 's' : ''}</span>
+                        </summary>
+                        <ul className="mt-1.5 space-y-1 pl-1 border-l-2 border-gray-100">
+                          {msg.citations.map((c, ci) => (
+                            <li key={ci} className="text-text-muted leading-snug">
+                              <span className="font-medium text-text-secondary">{c.source_title}</span>
+                              {c.section_heading && <span className="text-text-muted"> — {c.section_heading}</span>}
+                              {c.page_number && <span className="text-text-muted"> (p.{c.page_number})</span>}
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
                     )}
                     {msg.content && !isStreaming && (
                       <button

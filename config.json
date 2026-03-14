@@ -62,7 +62,8 @@
     "matchCount": 15,
     "similarityThreshold": 0.3,
     "researchThreshold": 0.7,
-    "chunkMaxChars": 3200,
+    "chunkMaxChars": 1600,
+    "childChunkChars": 400,
     "pinecone": {
       "indexName": "kop-intelligence"
     }
