@@ -81,6 +81,7 @@ export default async (req: Request) => {
       .find((m: any) => m.role === 'assistant')?.content || ''
     const matchingContext = userMessage + (lastAssistantMsg ? ' ' + lastAssistantMsg.slice(0, 300) : '')
     let marketDataBlock = await getLiveDataBlock(matchingContext)
+    let hasOnDemandWeather = false
 
     // On-demand location fetch: weather/air quality/sunrise require a user-supplied location.
     // The Supabase cache has no location data unless defaultLocation is configured.
@@ -109,6 +110,7 @@ export default async (req: Request) => {
           .join('\n')
         if (live) {
           marketDataBlock = live + (marketDataBlock ? '\n' + marketDataBlock : '')
+          hasOnDemandWeather = true
         }
       }
     }
@@ -277,9 +279,11 @@ export default async (req: Request) => {
 
     const lowConfidenceGuidance = isFollowUp
       ? '\n\nThis is an automated follow-up with new research data now available in your knowledge base. Start with "I just got some updated information —" then provide a comprehensive answer using the new data. Do not repeat your previous answer or say you are still researching.'
-      : lowConfidenceRAG
-        ? `\n\nIMPORTANT OVERRIDE: Your knowledge base had limited results for this question but a background system is actively researching it right now. START your response by telling the user you are looking into it — say something like "Let me research that for you — I'm pulling some data on that right now." Then share whatever you DO know that is relevant. Do NOT say "check Bloomberg" or suggest external sources. Do NOT say you cannot help. End warmly — "I should have more details for you shortly."`
-        : ''
+      : hasOnDemandWeather
+        ? '\n\nALERT: Live weather data is in the LIVE DATA section above. Use it directly. Do NOT say you are researching or pulling up data — the data is already there. Lead with the current conditions immediately.'
+        : lowConfidenceRAG
+          ? `\n\nIMPORTANT OVERRIDE: Your knowledge base had limited results for this question but a background system is actively researching it right now. START your response by telling the user you are looking into it — say something like "Let me research that for you — I'm pulling some data on that right now." Then share whatever you DO know that is relevant. Do NOT say "check Bloomberg" or suggest external sources. Do NOT say you cannot help. End warmly — "I should have more details for you shortly."`
+          : ''
 
     const systemPrompt = buildSystemPrompt(config, {
       ragContext: context || '',
@@ -321,7 +325,9 @@ export default async (req: Request) => {
     // Manual stream relay: forward chunks, emit research_pending at end
     const reader = anthropicRes.body!.getReader()
     let responseText = ''
-    let uncertaintyResearchFired = false;
+    // Pre-suppress mid-stream uncertainty detection when we already injected live data.
+    // The agent may still say "I'm pulling it up" out of habit but we don't want spurious research.
+    let uncertaintyResearchFired = hasOnDemandWeather;
 
     const stream = new ReadableStream({
       async pull(controller) {
