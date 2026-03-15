@@ -61,3 +61,79 @@ body {
 .page-enter {
   animation: page-enter 200ms ease-out;
 }
+
+/* ── Pipeline Dashboard Animations ── */
+
+@keyframes idle-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(34, 211, 238, 0.15); }
+  50% { box-shadow: 0 0 25px rgba(34, 211, 238, 0.3); }
+}
+
+@keyframes active-glow {
+  0%, 100% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.4); }
+  50% { box-shadow: 0 0 40px rgba(34, 211, 238, 0.7); }
+}
+
+@keyframes research-pulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.3); }
+  50% { box-shadow: 0 0 35px rgba(251, 191, 36, 0.6); }
+}
+
+@keyframes overlay-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.stage-zone {
+  animation: idle-pulse 3s ease-in-out infinite;
+  transition: all 200ms ease;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.stage-zone:hover {
+  animation: active-glow 1s ease-in-out infinite;
+}
+
+.stage-zone.active {
+  animation: active-glow 1s ease-in-out infinite;
+}
+
+.stage-zone-research {
+  animation: research-pulse 2s ease-in-out infinite;
+}
+
+.overlay-float {
+  animation: overlay-float 4s ease-in-out infinite;
+}
+
+.research-indicator {
+  animation: research-pulse 2s ease-in-out infinite;
+}
+
+.pulse-orb-glow {
+  filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.8));
+}
+
+/* ── Machine Zone Animations ── */
+.machine-zone {
+  animation: idle-pulse 3s ease-in-out infinite;
+  transition: all 200ms ease;
+  cursor: pointer;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+}
+
+.machine-zone:hover {
+  animation: active-glow 1s ease-in-out infinite;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.machine-zone.active {
+  animation: active-glow 1s ease-in-out infinite;
+}
+
+.machine-zone.researching {
+  animation: research-pulse 2s ease-in-out infinite;
+}

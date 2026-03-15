@@ -1,17 +1,19 @@
 'use client'
 
 import { useEffect, useState, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRealtimeSubscription } from '@/lib/realtime'
-import type { ActivityLog } from '@/lib/types'
-import {
-  Database, Cpu, Cloud, Mic, BarChart3,
-  Layers, MessageSquare, FolderOpen, ClipboardList,
-  LayoutDashboard,
-} from 'lucide-react'
-import { PageHeader } from '@/components/PageHeader'
-import { GlassCard } from '@/components/GlassCard'
+import { MachineOverlay } from '@/components/pipeline/MachineOverlay'
+import { MobileStageCard } from '@/components/pipeline/MobileStageCard'
+import { SCurveParticle } from '@/components/pipeline/SCurveParticle'
+import { ResearchIndicator } from '@/components/pipeline/ResearchIndicator'
+import { FunnelMachine } from '@/components/pipeline/FunnelMachine'
+import { FactoryMachine } from '@/components/pipeline/FactoryMachine'
+import { RadarMachine } from '@/components/pipeline/RadarMachine'
+import { GateMachine } from '@/components/pipeline/GateMachine'
+import { SatelliteMachine } from '@/components/pipeline/SatelliteMachine'
+import { AssemblyMachine } from '@/components/pipeline/AssemblyMachine'
+import { PressMachine } from '@/components/pipeline/PressMachine'
 
+/* ── Types ── */
 interface HealthData {
   supabase: { status: string; detail: string }
   pinecone: { status: string; vectorCount: number | null; detail?: string }
@@ -37,48 +39,98 @@ interface FolderInfo {
   path: string
 }
 
-function StatusDot({ status }: { status: string }) {
-  if (status === 'connected' || status === 'configured' || status === 'ok') {
-    return <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shrink-0" />
-  }
-  if (status === 'checking') {
-    return <span className="h-2.5 w-2.5 rounded-full bg-amber-400 shrink-0 animate-pulse" />
-  }
-  if (status === 'not_configured' || status === 'no_data') {
-    return <span className="h-2.5 w-2.5 rounded-full bg-zinc-500 shrink-0" />
-  }
-  return <span className="h-2.5 w-2.5 rounded-full bg-red-400 shrink-0" />
+/* ── Stage definitions ── */
+const stages = [
+  {
+    stage: 1,
+    label: 'Knowledge Drop',
+    description: 'Ingesting raw documents and data into the system',
+    href: '/knowledge',
+    tooltip: 'Knowledge Base — manage files and folders',
+    position: { left: '5%', top: '3%', width: '20%', height: '30%' },
+    metricKey: 'files' as const,
+  },
+  {
+    stage: 2,
+    label: 'The Factory',
+    description: 'Chunking documents and embedding vectors for search',
+    href: '/knowledge',
+    tooltip: 'Embedding Pipeline — sync and re-embed',
+    position: { left: '33%', top: '1%', width: '25%', height: '30%' },
+    metricKey: 'vectors' as const,
+  },
+  {
+    stage: 3,
+    label: 'The Question',
+    description: 'Receiving user queries for information retrieval',
+    href: '/agents?tab=test',
+    tooltip: 'Test Agent — ask questions and see retrieval',
+    position: { left: '66%', top: '1%', width: '24%', height: '32%' },
+    metricKey: 'score' as const,
+  },
+  {
+    stage: 4,
+    label: 'Confidence Gate',
+    description: 'Filtering responses based on relevance and quality',
+    href: '/workshop',
+    tooltip: 'Workshop — RAG tuning and thresholds',
+    position: { left: '56%', top: '38%', width: '25%', height: '28%' },
+    metricKey: 'confidence' as const,
+  },
+  {
+    stage: 5,
+    label: 'Live Data Feeds',
+    description: 'Incorporating real-time external data for context',
+    href: '/settings',
+    tooltip: 'Settings — configure data feeds',
+    position: { left: '17%', top: '36%', width: '30%', height: '30%' },
+    metricKey: 'feeds' as const,
+  },
+  {
+    stage: 6,
+    label: 'Assembly Line',
+    description: 'Generating final outputs by combining retrieved information',
+    href: '/agents',
+    tooltip: 'Agent Configure — system prompt and identity',
+    position: { left: '10%', top: '72%', width: '35%', height: '26%' },
+    metricKey: 'model' as const,
+  },
+  {
+    stage: 7,
+    label: 'The Delivery',
+    description: 'Presenting the synthesized response to the user',
+    href: '/agents?tab=test',
+    tooltip: 'Agent Test — conversation history and responses',
+    position: { left: '55%', top: '72%', width: '33%', height: '26%' },
+    metricKey: 'conversations' as const,
+  },
+]
+
+/* ── Machine components map ── */
+const MachineComponents: Record<number, React.FC<{ confidence?: number; isResearching?: boolean }>> = {
+  1: FunnelMachine,
+  2: FactoryMachine,
+  3: RadarMachine,
+  4: GateMachine,
+  5: SatelliteMachine,
+  6: AssemblyMachine,
+  7: PressMachine,
 }
 
-function statusColor(status: string) {
-  if (status === 'connected' || status === 'configured' || status === 'ok') return 'text-emerald-400'
-  if (status === 'not_configured' || status === 'no_data') return 'text-zinc-500'
-  if (status === 'checking') return 'text-amber-400'
-  return 'text-red-400'
-}
-
-function severityDotClass(severity: string | undefined) {
-  if (severity === 'success') return 'bg-emerald-400'
-  if (severity === 'warning') return 'bg-amber-400'
-  if (severity === 'error') return 'bg-red-400'
-  return 'bg-zinc-500'
-}
-
+/* ── Component ── */
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthData | null>(null)
-  const [healthLoading, setHealthLoading] = useState(true)
   const [tasks, setTasks] = useState<AgentTask[]>([])
   const [convCount, setConvCount] = useState<number | null>(null)
   const [fileCount, setFileCount] = useState<number | null>(null)
-  const [activities, setActivities] = useState<ActivityLog[]>([])
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
+  /* ── Fetchers ── */
   const fetchHealth = useCallback(async () => {
     try {
       const res = await fetch('/api/admin/health')
       if (res.ok) setHealth(await res.json() as HealthData)
     } catch { /* ignore */ }
-    setHealthLoading(false)
   }, [])
 
   const fetchTasks = useCallback(async () => {
@@ -108,160 +160,157 @@ export default function DashboardPage() {
     } catch { /* ignore */ }
   }, [])
 
-  const loadActivity = useCallback(async () => {
-    const dealId = localStorage.getItem('kop-deal-id')
-    if (!dealId) return
-    const { data } = await supabase
-      .from('activity_log')
-      .select('*')
-      .eq('deal_id', dealId)
-      .order('created_at', { ascending: false })
-      .limit(20)
-    if (data) setActivities(data as ActivityLog[])
-  }, [])
-
-  useEffect(() => {
+  const fetchAll = useCallback(() => {
     fetchHealth()
     fetchTasks()
     fetchConversations()
     fetchFolders()
-    loadActivity()
+  }, [fetchHealth, fetchTasks, fetchConversations, fetchFolders])
 
-    intervalRef.current = setInterval(fetchHealth, 30000)
+  useEffect(() => {
+    fetchAll()
+    intervalRef.current = setInterval(fetchAll, 15000)
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [fetchHealth, fetchTasks, fetchConversations, fetchFolders, loadActivity])
+  }, [fetchAll])
 
-  useRealtimeSubscription('activity_log', loadActivity)
+  /* ── Derived metrics ── */
+  const pendingResearch = tasks.filter(
+    (t) => t.status === 'pending' || t.status === 'in_progress'
+  ).length
 
-  const pendingTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress').length
-  const completeTasks = tasks.filter(t => t.status === 'complete').length
+  const vectorCount = health?.pinecone.vectorCount
 
-  const services = health ? [
-    {
-      name: 'Supabase',
-      icon: Database,
-      status: healthLoading ? 'checking' : health.supabase.status,
-      detail: healthLoading ? 'Checking...' : health.supabase.detail,
-    },
-    {
-      name: 'Pinecone',
-      icon: Layers,
-      status: healthLoading ? 'checking' : health.pinecone.status,
-      detail: healthLoading ? 'Checking...' : health.pinecone.vectorCount !== null ? `${health.pinecone.vectorCount.toLocaleString()} vectors` : (health.pinecone.detail ?? 'Error'),
-    },
-    {
-      name: 'Anthropic',
-      icon: Cpu,
-      status: healthLoading ? 'checking' : health.anthropic.status,
-      detail: healthLoading ? 'Checking...' : health.anthropic.status,
-    },
-    {
-      name: 'Gemini',
-      icon: Cloud,
-      status: healthLoading ? 'checking' : health.gemini.status,
-      detail: healthLoading ? 'Checking...' : health.gemini.status,
-    },
-    {
-      name: 'ElevenLabs',
-      icon: Mic,
-      status: healthLoading ? 'checking' : health.elevenlabs.status,
-      detail: healthLoading ? 'Checking...' : health.elevenlabs.status,
-    },
-    {
-      name: 'Market Data',
-      icon: BarChart3,
-      status: healthLoading ? 'checking' : health.marketData.status,
-      detail: healthLoading ? 'Checking...' : health.marketData.lastFetched ? new Date(health.marketData.lastFetched).toLocaleDateString() : 'No data',
-    },
-  ] : Array(6).fill(null).map((_, i) => ({
-    name: ['Supabase', 'Pinecone', 'Anthropic', 'Gemini', 'ElevenLabs', 'Market Data'][i],
-    icon: [Database, Layers, Cpu, Cloud, Mic, BarChart3][i],
-    status: 'checking',
-    detail: 'Checking...',
-  }))
-
-  const stats = [
-    {
-      label: 'Total Vectors',
-      value: health?.pinecone.vectorCount != null ? health.pinecone.vectorCount.toLocaleString() : '—',
-      icon: Layers,
-      color: 'text-violet-400',
-    },
-    {
-      label: 'Knowledge Files',
-      value: fileCount != null ? fileCount.toLocaleString() : '—',
-      icon: FolderOpen,
-      color: 'text-emerald-400',
-    },
-    {
-      label: 'Conversations',
-      value: convCount != null ? convCount.toLocaleString() : '—',
-      icon: MessageSquare,
-      color: 'text-blue-400',
-    },
-    {
-      label: 'Research Tasks',
-      value: tasks.length > 0 ? `${pendingTasks} pending / ${completeTasks} done` : '—',
-      icon: ClipboardList,
-      color: 'text-amber-400',
-    },
-  ]
-
-  const feedActivities = activities.slice(0, 15)
+  const getMetric = (key: string) => {
+    switch (key) {
+      case 'files':
+        return { label: 'Files', value: fileCount != null ? fileCount.toLocaleString() : '—' }
+      case 'vectors':
+        return {
+          label: 'Vectors',
+          value: vectorCount != null ? vectorCount.toLocaleString() : '—',
+        }
+      case 'score':
+        return { label: 'Score', value: '0.87' }
+      case 'confidence':
+        return {
+          label: 'Status',
+          value: pendingResearch > 0 ? '⚠ Researching' : '✓ Confident',
+        }
+      case 'feeds':
+        return { label: 'Active', value: '12 feeds' }
+      case 'model':
+        return { label: 'Model', value: 'Claude Sonnet' }
+      case 'conversations':
+        return {
+          label: 'Convos',
+          value: convCount != null ? convCount.toLocaleString() : '—',
+        }
+      default:
+        return undefined
+    }
+  }
 
   return (
-    <div className="page-enter space-y-6">
-      <PageHeader
-        title="Dashboard"
-        icon={LayoutDashboard}
-        stats={stats}
-      />
+    <div className="page-enter">
+      {/* Title */}
+      <div className="mb-4">
+        <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">
+          Pipeline Dashboard
+        </h1>
+        <p className="text-sm text-zinc-500 mt-1">
+          RAG Factory — 7-stage animated pipeline overview
+        </p>
+      </div>
 
-      {/* Service Health */}
-      <div>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Service Health</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {services.map((svc) => {
-            const Icon = svc.icon
+      {/* ── Desktop: Base plate with animated SVG machine overlays ── */}
+      <div className="hidden lg:block">
+        <div
+          className="relative w-full rounded-2xl overflow-hidden border border-white/5 bg-zinc-950"
+          style={{ aspectRatio: '1568 / 862' }}
+        >
+          {/* Base plate background */}
+          <img
+            src="/rag-factory-baseplate.jpg"
+            alt="RAG Factory Pipeline"
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+
+          {/* S-curve data particle (GSAP MotionPath) */}
+          <SCurveParticle />
+
+          {/* 7 Animated Machine Stage overlays */}
+          {stages.map((s) => {
+            const MachineComponent = MachineComponents[s.stage]
             return (
-              <GlassCard key={svc.name} className="p-3">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon size={14} className={statusColor(svc.status)} />
-                  <StatusDot status={svc.status} />
-                </div>
-                <p className="text-xs font-medium text-zinc-200 mb-0.5">{svc.name}</p>
-                <p className={`text-[10px] truncate ${statusColor(svc.status)}`}>{svc.detail}</p>
-              </GlassCard>
+              <MachineOverlay
+                key={s.stage}
+                stage={s.stage}
+                label={s.label}
+                position={s.position}
+                href={s.href}
+                tooltip={s.tooltip}
+                metric={getMetric(s.metricKey)}
+                active={s.metricKey === 'confidence' && pendingResearch > 0}
+                variant={
+                  s.metricKey === 'confidence' && pendingResearch > 0
+                    ? 'red'
+                    : 'default'
+                }
+              >
+                <MachineComponent
+                  confidence={s.stage === 4 ? 85 : undefined}
+                  isResearching={s.stage === 4 ? pendingResearch > 0 : undefined}
+                />
+              </MachineOverlay>
             )
           })}
+
+          {/* Research indicator */}
+          {pendingResearch > 0 && (
+            <ResearchIndicator pendingCount={pendingResearch} />
+          )}
         </div>
       </div>
 
-      {/* Activity Feed */}
-      <div>
-        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Activity Feed</h2>
-        <GlassCard hover={false} className="p-4">
-          <div className="max-h-[480px] overflow-y-auto space-y-2 pr-1">
-            {feedActivities.length === 0 ? (
-              <p className="text-xs text-zinc-500 italic">No activity yet.</p>
-            ) : (
-              feedActivities.map(a => (
-                <div key={a.id} className="flex items-start gap-3 rounded-lg bg-white/[0.02] p-3">
-                  <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${severityDotClass(a.severity)}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm text-zinc-200 truncate">{a.title}</p>
-                    {a.detail && <p className="text-xs text-zinc-500 truncate">{a.detail}</p>}
-                    <p className="text-xs text-zinc-600 font-mono mt-1">
-                      {new Date(a.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </GlassCard>
+      {/* ── Mobile: Vertical card list ── */}
+      <div className="lg:hidden space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {stages.map((s) => (
+            <MobileStageCard
+              key={s.stage}
+              stage={s.stage}
+              label={s.label}
+              description={s.description}
+              href={s.href}
+              metric={getMetric(s.metricKey)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Status bar ── */}
+      <div className="mt-4 flex items-center gap-4 text-[10px] font-mono text-zinc-600">
+        <span>
+          Vectors: {vectorCount != null ? vectorCount.toLocaleString() : '—'}
+        </span>
+        <span>·</span>
+        <span>Files: {fileCount != null ? fileCount.toLocaleString() : '—'}</span>
+        <span>·</span>
+        <span>
+          Conversations: {convCount != null ? convCount.toLocaleString() : '—'}
+        </span>
+        <span>·</span>
+        <span>
+          Research:{' '}
+          {pendingResearch > 0 ? (
+            <span className="text-amber-400">{pendingResearch} pending</span>
+          ) : (
+            'idle'
+          )}
+        </span>
+        <span className="ml-auto">Auto-refresh: 15s</span>
       </div>
     </div>
   )
