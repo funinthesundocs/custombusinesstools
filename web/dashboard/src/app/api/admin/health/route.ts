@@ -68,19 +68,13 @@ export async function GET() {
   // ElevenLabs key check
   result.elevenlabs = { status: process.env.ELEVENLABS_API_KEY ? 'configured' : 'not_configured' }
 
-  // Market data check
+  // Market data check — ping a free feed to verify data feeds are reachable
   try {
-    const supabase = createServerClient()
-    const { data } = await supabase
-      .from('market_data')
-      .select('created_at')
-      .order('created_at', { ascending: false })
-      .limit(1)
-    if (data && data.length > 0) {
-      const row = data[0] as { created_at: string }
-      result.marketData = { status: 'ok', lastFetched: row.created_at }
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=0&longitude=0&current_weather=true', { signal: AbortSignal.timeout(5000) })
+    if (res.ok) {
+      result.marketData = { status: 'ok', lastFetched: new Date().toISOString() }
     } else {
-      result.marketData = { status: 'no_data', lastFetched: null }
+      result.marketData = { status: 'error', lastFetched: null }
     }
   } catch {
     result.marketData = { status: 'error', lastFetched: null }

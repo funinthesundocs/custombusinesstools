@@ -131,7 +131,13 @@ export default function SettingsPage() {
     setHealthLoading(false)
   }, [])
 
+  const LOCATION_FEEDS = new Set(['weather', 'air_quality', 'sunrise'])
+
   const testFeed = useCallback(async (feedKey: string) => {
+    if (LOCATION_FEEDS.has(feedKey) && !defaultLocation) {
+      setFeedResults(prev => ({ ...prev, [feedKey]: { ok: false, error: 'Set a Default Location above first' } }))
+      return
+    }
     setFeedTesting(prev => ({ ...prev, [feedKey]: true }))
     try {
       const params = new URLSearchParams({ source: feedKey })

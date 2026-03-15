@@ -1,10 +1,27 @@
 # RAG Factory
 
 ## READ FIRST — BEFORE ANY IMPLEMENTATION
-Read `VISION.md` in full before designing any feature, architecture, or solution.
+1. Read `.agent/alignment/README.md` — the universal alignment system. Follow the boot protocol.
+2. Read `VISION.md` in full before designing any feature, architecture, or solution.
+
+These are non-optional for ANY agent (CLI, IDE, API). The alignment system contains
+pearls of wisdom (hard-won lessons), boot/harvest protocols, and the iterate-to-96 process.
 VISION.md contains the governing intent, the five decision filters, and the eagle view
-test that every change must pass. It exists specifically because Claude loses macro
-perspective when deep in implementation. Do not skip it.
+test that every change must pass. Do not skip either.
+
+## Slash Commands
+
+When the user types any of these commands, read and execute the corresponding protocol:
+
+| Command | Protocol File | What It Does |
+|---------|--------------|--------------|
+| `/boot` | `.agent/alignment/protocols/boot.md` | Load pearls, project context, activate tracking |
+| `/harvest` | `.agent/alignment/protocols/harvest.md` | Full 19-step wisdom extraction from session |
+| `/harvest-quick` | `.agent/alignment/protocols/harvest-quick.md` | Abbreviated 11-step harvest |
+| `/iterate` | `.agent/alignment/protocols/iterate.md` | Recursive self-grading to 96% perfection |
+| `/pearl-report` | `.agent/alignment/protocols/pearl-report.md` | Generate HTML pearl dashboard |
+
+These commands work for ANY agent working in this repo. Read the protocol file and follow it exactly.
 
 ## What This Is
 A **universal AI agent template** — deployable by any business or individual.
