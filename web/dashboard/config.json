@@ -41,14 +41,19 @@
     "mono": "JetBrains Mono"
   },
   "supabase": {
-    "project_id": "REPLACE_WITH_PROJECT_ID"
+    "project_id": "0f0d0ea1-fbb7-40b9-ace6-bdcf597831c1"
   },
-  "market_data": {
-    "enabled": false,
-    "weather_location": {
-      "name": "",
-      "latitude": 0,
-      "longitude": 0
+  "dataFeeds": {
+    "defaultLocation": "",
+    "baseCurrency": "USD",
+    "cryptoAssets": ["bitcoin", "ethereum", "solana"],
+    "earthquakeMinMagnitude": 4.0,
+    "stockSymbols": [],
+    "sportsLeagues": ["nfl", "nba"],
+    "apiKeys": {
+      "fred": "",
+      "gnews": "",
+      "alphaVantage": ""
     }
   },
   "rag": {
@@ -57,7 +62,8 @@
     "matchCount": 15,
     "similarityThreshold": 0.3,
     "researchThreshold": 0.7,
-    "chunkMaxChars": 3200,
+    "chunkMaxChars": 1600,
+    "childChunkChars": 400,
     "pinecone": {
       "indexName": "kop-intelligence"
     }
