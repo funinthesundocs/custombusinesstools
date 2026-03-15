@@ -1,12 +1,11 @@
+export const runtime = 'nodejs'
+export const maxDuration = 30
+
 const VOICE_ID = 'dtSEyYGNJqjrtBArPCVZ' // Titan
 
-export default async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
-  }
-
+export async function POST(request: Request) {
   try {
-    const { text } = await req.json()
+    const { text } = await request.json()
     if (!text) {
       return new Response(JSON.stringify({ error: 'No text provided' }), {
         status: 400,

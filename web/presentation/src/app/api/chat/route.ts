@@ -1,10 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
-import config from '../../config.json'
-import { buildSystemPrompt } from '../../../../config/system-prompt-template'
-import { selectFeedsForQuestion, fetchWeather, fetchAirQuality, fetchSunrise } from '../../../../config/live-data'
+export const runtime = 'nodejs'
+export const maxDuration = 120
+
+import config from '../../../../config.json'
+import { buildSystemPrompt } from '../../../../../../config/system-prompt-template'
+import { selectFeedsForQuestion, fetchWeather, fetchAirQuality, fetchSunrise } from '../../../../../../config/live-data'
 
 let cachedLiveData: { feeds: Record<string, string>; fetchedAt: number } | null = null
-const LIVE_DATA_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const LIVE_DATA_TTL_MS = 10 * 60 * 1000
 
 async function getLiveDataBlock(question: string): Promise<string> {
   const now = Date.now()
@@ -30,16 +32,16 @@ async function getLiveDataBlock(question: string): Promise<string> {
 }
 
 async function writeAgentTask(task: {
-  conversation_id?: string;
-  task_type: 'knowledge_gap' | 'content_update' | 'document_request' | 'escalation' | 'feedback';
-  payload: Record<string, any>;
-  priority?: 'low' | 'normal' | 'high' | 'urgent';
-  metadata?: Record<string, any>;
+  conversation_id?: string
+  task_type: 'knowledge_gap' | 'content_update' | 'document_request' | 'escalation' | 'feedback'
+  payload: Record<string, any>
+  priority?: 'low' | 'normal' | 'high' | 'urgent'
+  metadata?: Record<string, any>
 }) {
   try {
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!supabaseUrl || !supabaseKey) return;
+    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!supabaseUrl || !supabaseKey) return
     await fetch(`${supabaseUrl}/rest/v1/agent_tasks`, {
       method: 'POST',
       headers: {
@@ -57,40 +59,28 @@ async function writeAgentTask(task: {
         metadata: task.metadata || {},
         deal_id: config.supabase.project_id
       })
-    });
+    })
   } catch (e) {
-    console.error('Agent task write failed:', e);
+    console.error('Agent task write failed:', e)
   }
 }
 
-export default async (req: Request) => {
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 })
-  }
-
+export async function POST(request: Request) {
   try {
-    const { messages: incomingMessages, question, voice, isFollowUp } = await req.json()
+    const { messages: incomingMessages, question, voice, isFollowUp } = await request.json()
     const messages = incomingMessages
 
-    // Establish user message first so live data can keyword-match against it
     const userMessage = question || messages?.[messages.length - 1]?.content || ''
 
-    // Include the last assistant message for context — so a reply like "Honolulu"
-    // inherits weather intent from the prior turn that asked "Which city?"
     const lastAssistantMsg = messages?.slice().reverse()
       .find((m: any) => m.role === 'assistant')?.content || ''
     const matchingContext = userMessage + (lastAssistantMsg ? ' ' + lastAssistantMsg.slice(0, 300) : '')
     let marketDataBlock = await getLiveDataBlock(matchingContext)
     let hasOnDemandWeather = false
 
-    // On-demand location fetch: weather/air quality/sunrise require a user-supplied location.
-    // The Supabase cache has no location data unless defaultLocation is configured.
-    // Detect weather intent in context, extract location from userMessage, fetch live.
     const WEATHER_INTENT = /weather|temperature|temp|rain|forecast|hot|cold|humid|wind|celsius|fahrenheit|snow|sunrise|sunset|air quality|aqi/i
     const LOCATION_CONTEXT = /weather|city|location|temperature|forecast|air quality/i
     if (WEATHER_INTENT.test(matchingContext) || LOCATION_CONTEXT.test(lastAssistantMsg)) {
-      // Extract location: prefer userMessage if short and looks like a place name,
-      // otherwise scan full context for a quoted or capitalized location
       const trimmed = userMessage.trim()
       const looksLikeLocation = trimmed.length > 0 && trimmed.length < 60 &&
         !trimmed.includes('?') && /[A-Z]/.test(trimmed) &&
@@ -115,7 +105,6 @@ export default async (req: Request) => {
       }
     }
 
-    // RAG: embed question with Gemini Embedding 2 + retrieve from Pinecone
     let context = ''
     let mediaResults: Array<{ modality: string; url: string; caption: string; score: number }> = []
     let ragCitations: Array<{ source_title: string; source_file: string; section_heading: string; page_number: number | null; score: number }> = []
@@ -129,7 +118,6 @@ export default async (req: Request) => {
       const pineconeHost = process.env.PINECONE_INDEX_HOST
 
       if (geminiApiKey && pineconeApiKey && pineconeHost) {
-        // Embed query with Gemini Embedding 2 (3072 dims — matches index)
         const embeddingRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiApiKey}`,
           {
@@ -143,7 +131,6 @@ export default async (req: Request) => {
         const embeddingData = await embeddingRes.json()
 
         if (embeddingData?.embedding?.values) {
-          // Query Pinecone via REST API (no SDK needed in edge function)
           const pineconeRes = await fetch(
             `https://${pineconeHost}/query`,
             {
@@ -177,7 +164,6 @@ export default async (req: Request) => {
           topScore = freshMatches[0]?.score || 0
           lowConfidenceRAG = ragChunksCount === 0 || topScore < 0.7
 
-          // Don't trigger research for questions answerable by injected market data
           if (lowConfidenceRAG && marketDataBlock.length > 0) {
             const stopWords = new Set(['the','is','are','was','were','what','how','who','when','where','why','which','that','this','with','from','for','and','but','not','you','your','can','could','would','should','have','has','had','does','did','will','about','into','than','then','them','they','been','being','some','any','all','most','much','very','just','also','now','here','there','each','every','both','few','more','many','such','only','own','same','well','back','even','still','over','after','before','our','out','its','per','too','get','got','let','may','yet','like','ask','tell','know','make','take','come','give','keep','help','show','try','need','want','say','see','look','find','use','way','day','new','one','two','first','last','long','great','little','right','big','high','low','old','good','bad','sure','real','best'])
             const questionWords = userMessage.toLowerCase().split(/\s+/).filter((w: string) => w.length > 2 && !stopWords.has(w))
@@ -187,7 +173,6 @@ export default async (req: Request) => {
             }
           }
 
-          // Split by modality: text → context, images/video → mediaResults
           const textRaw = freshMatches.filter((m: any) =>
             !m.metadata?.modality || m.metadata.modality === 'text'
           )
@@ -195,8 +180,6 @@ export default async (req: Request) => {
             m.metadata?.modality === 'image' || m.metadata?.modality === 'video'
           )
 
-          // Dedup child vectors by parent_id — keep only the highest-scoring child per parent.
-          // This prevents the same section from appearing multiple times in context.
           const seenParents = new Map<string, any>()
           for (const m of textRaw) {
             const pid = m.metadata?.parent_id || m.id
@@ -209,8 +192,6 @@ export default async (req: Request) => {
             .sort((a: any, b: any) => (b.score || 0) - (a.score || 0))
             .slice(0, 8)
 
-          // Use parent_content (full section ~1600 chars) for context injection when available.
-          // Fall back to content (child snippet) for old flat vectors.
           context = dedupedTextMatches
             .map((m: any) => `[${m.metadata?.track || 'source'}|${m.metadata?.source_title || m.metadata?.source_file || 'document'}|score:${m.score?.toFixed(3)}]\n${m.metadata?.parent_content || m.metadata?.content || ''}`)
             .join('\n\n---\n\n')
@@ -224,7 +205,6 @@ export default async (req: Request) => {
               score: m.score,
             }))
 
-          // Build citation list from deduped text matches for the UI Sources panel
           ragCitations = dedupedTextMatches
             .filter((m: any) => m.score >= 0.4)
             .map((m: any) => ({
@@ -240,13 +220,12 @@ export default async (req: Request) => {
       // RAG unavailable — proceed without context
     }
 
-    // Fire research in background — do NOT await
     if (lowConfidenceRAG && !isFollowUp) {
-      const taskSecret = process.env.TASK_PROCESSOR_SECRET;
-      const processUrl = process.env.PROCESS_TASK_URL;
-      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      const realtimeTaskId = crypto.randomUUID();
+      const taskSecret = process.env.TASK_PROCESSOR_SECRET
+      const processUrl = process.env.PROCESS_TASK_URL
+      const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+      const realtimeTaskId = crypto.randomUUID()
 
       if (supabaseUrl && supabaseKey) {
         fetch(`${supabaseUrl}/rest/v1/agent_tasks`, {
@@ -293,13 +272,13 @@ export default async (req: Request) => {
                 },
                 priority: 'urgent'
               })
-            }).catch(() => {});
+            }).catch(() => {})
           }
-        }).catch(() => {});
+        }).catch(() => {})
       }
     }
 
-    const realtimeResearchFired = lowConfidenceRAG && !isFollowUp;
+    const realtimeResearchFired = lowConfidenceRAG && !isFollowUp
 
     const lengthGuidance = voice
       ? `CRITICAL LENGTH CONSTRAINT: This answer will be read aloud. You MUST keep your entire response under 60 words — one crisp thought that sounds good spoken aloud. No lists, no bullet points. Think "elevator pitch sentence" not "briefing document". If the topic is complex, give the single most important point and say "I can elaborate if you'd like."`
@@ -350,14 +329,9 @@ export default async (req: Request) => {
       )
     }
 
-    // Manual stream relay: forward chunks, emit research_pending at end
     const reader = anthropicRes.body!.getReader()
     let responseText = ''
-    // suppressUncertaintyDetection: blocks mid-stream phrase check when live weather data was
-    // already injected — the agent may say "pulling it up" out of habit even when data is present.
     const suppressUncertaintyDetection = hasOnDemandWeather
-    // uncertaintyResearchFired: set to true ONLY when a genuine uncertainty phrase is detected
-    // during streaming. Starts false regardless of weather state.
     let uncertaintyResearchFired = false
 
     const stream = new ReadableStream({
@@ -366,31 +340,27 @@ export default async (req: Request) => {
           const { done, value } = await reader.read()
 
           if (done) {
-            // Emit media results if any were retrieved
             if (mediaResults.length > 0) {
-              const mediaSignal = `data: ${JSON.stringify({ type: 'media_results', results: mediaResults })}\n\n`;
-              controller.enqueue(new TextEncoder().encode(mediaSignal));
+              const mediaSignal = `data: ${JSON.stringify({ type: 'media_results', results: mediaResults })}\n\n`
+              controller.enqueue(new TextEncoder().encode(mediaSignal))
             }
 
-            // Emit citations for the Sources panel
             if (ragCitations.length > 0) {
-              const citationsSignal = `data: ${JSON.stringify({ type: 'citations', citations: ragCitations })}\n\n`;
-              controller.enqueue(new TextEncoder().encode(citationsSignal));
+              const citationsSignal = `data: ${JSON.stringify({ type: 'citations', citations: ragCitations })}\n\n`
+              controller.enqueue(new TextEncoder().encode(citationsSignal))
             }
 
-            // Emit research_pending signal before closing
             if (lowConfidenceRAG) {
-              const signal = `data: ${JSON.stringify({ type: 'research_pending', question: userMessage })}\n\n`;
-              controller.enqueue(new TextEncoder().encode(signal));
+              const signal = `data: ${JSON.stringify({ type: 'research_pending', question: userMessage })}\n\n`
+              controller.enqueue(new TextEncoder().encode(signal))
             }
 
-            // Fire research for mid-stream uncertainty if not already fired
             if (uncertaintyResearchFired) {
-              const taskSecret = process.env.TASK_PROCESSOR_SECRET;
-              const processUrl = process.env.PROCESS_TASK_URL;
-              const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-              const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-              const uncertaintyTaskId = crypto.randomUUID();
+              const taskSecret = process.env.TASK_PROCESSOR_SECRET
+              const processUrl = process.env.PROCESS_TASK_URL
+              const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+              const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+              const uncertaintyTaskId = crypto.randomUUID()
 
               if (supabaseUrl && supabaseKey && taskSecret && processUrl) {
                 try {
@@ -412,7 +382,7 @@ export default async (req: Request) => {
                       metadata: { research_fired: true },
                       deal_id: config.supabase.project_id
                     })
-                  });
+                  })
                   await fetch(processUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${taskSecret}` },
@@ -422,14 +392,13 @@ export default async (req: Request) => {
                       payload: { question: userMessage, detection_method: 'uncertainty_phrase', realtime: true, timestamp: new Date().toISOString() },
                       priority: 'urgent'
                     })
-                  }).catch(() => {});
+                  }).catch(() => {})
                 } catch {}
               }
             }
 
             controller.close()
 
-            // Post-stream tasks
             try {
               const taskPromises: Promise<void>[] = []
               if (lowConfidenceRAG && !realtimeResearchFired) {
@@ -456,7 +425,6 @@ export default async (req: Request) => {
 
           controller.enqueue(value)
 
-          // Accumulate text + mid-stream uncertainty detection
           try {
             const text = new TextDecoder().decode(value)
             for (const line of text.split('\n')) {
@@ -468,12 +436,12 @@ export default async (req: Request) => {
               }
             }
             if (!uncertaintyResearchFired && !suppressUncertaintyDetection && !lowConfidenceRAG && !isFollowUp) {
-              const lowerResponse = responseText.toLowerCase();
-              const uncertaintyPhrases = ["outside what i have", "don't have information", "outside my knowledge", "that's outside", "you'd want to ask", "you'd want to check", "check with the", "i don't know", "don't have that on hand", "pulling it up for you", "i'm pulling it up", "don't have that"];
+              const lowerResponse = responseText.toLowerCase()
+              const uncertaintyPhrases = ["outside what i have", "don't have information", "outside my knowledge", "that's outside", "you'd want to ask", "you'd want to check", "check with the", "i don't know", "don't have that on hand", "pulling it up for you", "i'm pulling it up", "don't have that"]
               if (uncertaintyPhrases.some(p => lowerResponse.includes(p))) {
-                uncertaintyResearchFired = true;
-                const signal = `data: ${JSON.stringify({ type: 'research_pending', question: userMessage })}\n\n`;
-                controller.enqueue(new TextEncoder().encode(signal));
+                uncertaintyResearchFired = true
+                const signal = `data: ${JSON.stringify({ type: 'research_pending', question: userMessage })}\n\n`
+                controller.enqueue(new TextEncoder().encode(signal))
               }
             }
           } catch {}

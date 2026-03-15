@@ -1,24 +1,15 @@
-/**
- * RAG Factory — Live Data Update Function
- *
- * Scheduled Netlify function. Fetches all live data feeds and stores
- * them in the Supabase market_data table. The chat function reads from
- * this table, applying keyword matching to inject only relevant feeds.
- *
- * Schedule: configure in netlify.toml (recommended: every 30 minutes)
- * All data sources are FREE — no API keys required for any feed.
- */
+export const runtime = 'nodejs'
+export const maxDuration = 60
 
-import config from '../../config.json'
-import { fetchAllFeeds, type DataFeedsConfig } from '../../../../config/live-data'
+import config from '../../../../config.json'
+import { fetchAllFeeds, type DataFeedsConfig } from '../../../../../../config/live-data'
 
-export default async (req: Request) => {
+export async function POST(request: Request) {
   try {
-    const authHeader = req.headers.get('Authorization')
+    const authHeader = request.headers.get('Authorization')
     const taskSecret = process.env.TASK_PROCESSOR_SECRET
-    const isScheduled = req.headers.get('X-NF-Event') === 'schedule'
 
-    if (!isScheduled && authHeader !== `Bearer ${taskSecret}`) {
+    if (authHeader !== `Bearer ${taskSecret}`) {
       return new Response('Unauthorized', { status: 401 })
     }
 
