@@ -489,7 +489,8 @@ export function AIChat({ fullPage = false, onClose }: AIChatProps) {
                                 messages: [{ role: 'user', content: pendingQuestion }],
                                 question: pendingQuestion,
                                 voice: false,
-                                isFollowUp: true
+                                isFollowUp: true,
+                                researchContent: match.result?.content || null
                               })
                             });
 

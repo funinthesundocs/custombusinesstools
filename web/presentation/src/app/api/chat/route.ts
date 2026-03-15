@@ -67,7 +67,7 @@ async function writeAgentTask(task: {
 
 export async function POST(request: Request) {
   try {
-    const { messages: incomingMessages, question, voice, isFollowUp } = await request.json()
+    const { messages: incomingMessages, question, voice, isFollowUp, researchContent } = await request.json()
     const messages = incomingMessages
 
     const userMessage = question || messages?.[messages.length - 1]?.content || ''
@@ -112,12 +112,19 @@ export async function POST(request: Request) {
     let topScore = 0
     let ragChunksCount = 0
 
+    // If this is a follow-up and the client already has the research content from Supabase,
+    // inject it directly — bypasses the Pinecone timing race from earlyComplete
+    if (isFollowUp && researchContent) {
+      context = `[auto-research|Live Research|score:1.000]\n${researchContent}`
+      lowConfidenceRAG = false
+    }
+
     try {
       const geminiApiKey = process.env.GEMINI_API_KEY
       const pineconeApiKey = process.env.PINECONE_API_KEY
       const pineconeHost = process.env.PINECONE_INDEX_HOST
 
-      if (geminiApiKey && pineconeApiKey && pineconeHost) {
+      if (geminiApiKey && pineconeApiKey && pineconeHost && !context) {
         const embeddingRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-2-preview:embedContent?key=${geminiApiKey}`,
           {
