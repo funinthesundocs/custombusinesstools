@@ -68,7 +68,7 @@
 |-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
 | `One repo = one agent = one client` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
 | `Template is content-agnostic` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
-| `Dashboard is backburner` | Established | (unknown) | 2026-09-14 | 1 | 1 | ? | ? | 100% |
+| `Dashboard is backburner` | Established | (unknown) | 2026-09-14 | 2 | 2 | ? | ? | 100% |
 | `Coverage metrics need eligible-only denominators` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
 | `RAG parent-child dedup by parent_id` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 45 | 45 | 100% |
 
@@ -86,17 +86,19 @@
 | `Markdown tables: skip header AND separator` | When parsing markdown tables programmatically, skip both the separator row (`\|---\|`) AND the header row — separators match a clear regex pattern, but header rows are structurally identical to data rows and corrupt the first parsed record if not explicitly skipped. | Prevention | When writing any parser that extracts rows from markdown or similarly-formatted tables | Hard Constraint |
 | `Suppression flag ≠ action flag` | Pre-setting a boolean to `true` to suppress a detection path reuses the same variable to mean "this action should fire" — causing the suppressed behavior to trigger instead; split into two explicitly named variables the moment a flag must serve both purposes. | Prevention | When writing boolean state for any async flow, feature flag, or event system where "skip detection" and "trigger action" share the same variable | Hard Constraint |
 | `Report observed values, not documented defaults` | When producing status summaries, boot reports, or system state descriptions, use values directly observed from process output (actual port, actual version, actual URL) — never substitute values from documentation or config files, which may be stale or overridden at runtime. | Prevention | When generating any status report, boot summary, or system state description that includes ports, versions, endpoints, or other runtime values | Hard Constraint |
+| `Import success does not mean library works` | When a native code binding (Rust/C extension) imports without error, it does NOT mean it functions correctly — the binding may segfault when processing actual data, especially on newer Python versions. Always test with real data processing before building a pipeline around it. | Prevention | When incorporating any native/compiled Python package (Rust bindings, C extensions) into an automated pipeline, especially on Python 3.13+ | Hard Constraint |
 
 **Metrics** *(updated at harvest)*
 
 | Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
 |-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
 | `Grep does not satisfy Edit's read requirement` | Established | (unknown) | 2026-09-14 | 2 | 2 | ? | ? | 100% |
-| `Dev script may not be at repo root` | Confirmed | 2026-03-14 | 2026-09-14 | 4 | 4 | 5 | 20 | 100% |
+| `Dev script may not be at repo root` | Confirmed | 2026-03-14 | 2026-09-14 | 5 | 5 | 5 | 25 | 100% |
 | `Windows paths in .env use forward slashes` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
 | `Markdown tables: skip header AND separator` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 10 | 10 | 100% |
 | `Suppression flag ≠ action flag` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 30 | 30 | 100% |
-| `Report observed values, not documented defaults` | Seed | 2026-03-15 | 2026-09-15 | 1 | 1 | 3 | 3 | 100% |
+| `Report observed values, not documented defaults` | Seed | 2026-03-15 | 2026-09-15 | 2 | 2 | 3 | 6 | 100% |
+| `Import success does not mean library works` | Seed | 2026-03-15 | 2026-09-15 | 1 | 1 | 15 | 15 | 100% |
 
 ---
 
