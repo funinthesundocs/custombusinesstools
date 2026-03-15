@@ -2,11 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { COLOR_OPTIONS, getStoredColor, setStoredColor } from '@/lib/colors'
-import { Check, Database, Layers, Cpu, Cloud, Mic, BarChart3, ExternalLink, Globe, Zap } from 'lucide-react'
+import { Check, Database, Layers, Cpu, Cloud, Mic, BarChart3, ExternalLink, Globe, Zap, Settings } from 'lucide-react'
 import Link from 'next/link'
+import { PageHeader } from '@/components/PageHeader'
+import { GlassCard } from '@/components/GlassCard'
+import { Toggle } from '@/components/Toggle'
 
-type TabName = 'Appearance' | 'Connections' | 'RAG Config' | 'Data Feeds'
-const TABS: TabName[] = ['Appearance', 'Connections', 'RAG Config', 'Data Feeds']
+type TabName = 'Appearance' | 'Connections' | 'Data Feeds'
+const TABS: TabName[] = ['Appearance', 'Connections', 'Data Feeds']
 
 interface HealthData {
   supabase: { status: string; detail: string }
@@ -20,11 +23,6 @@ interface HealthData {
 interface SiteConfig {
   company: { name: string; short_name: string; domain: string }
   agent: { name: string }
-  rag: {
-    embeddingModel: string
-    embeddingDimensions: number
-    pinecone: { indexName: string }
-  }
 }
 
 interface FeedResult {
@@ -60,6 +58,24 @@ function statusTextColor(status: string) {
   return 'text-red-400'
 }
 
+const FEEDS = [
+  { key: 'weather',        label: 'Weather',           source: 'Open-Meteo',        desc: 'Current conditions + 3-day forecast' },
+  { key: 'air_quality',    label: 'Air Quality',       source: 'Open-Meteo AQ',     desc: 'AQI, PM2.5, PM10, ozone' },
+  { key: 'forex',          label: 'Forex Rates',       source: 'ExchangeRate-API',  desc: '160+ currencies, daily update' },
+  { key: 'crypto',         label: 'Crypto Prices',     source: 'CoinGecko',         desc: 'Price + 24h change, ~30 req/min' },
+  { key: 'commodities',    label: 'Commodities',       source: 'Yahoo Finance',     desc: 'Gold, silver, oil, gas, copper — spot prices' },
+  { key: 'stocks',         label: 'Stock Markets',     source: 'Yahoo Finance',     desc: 'S&P 500, Nasdaq, Dow + configurable tickers' },
+  { key: 'earthquakes',    label: 'Earthquakes',       source: 'USGS',              desc: 'Real-time global seismic activity' },
+  { key: 'natural_events', label: 'Natural Events',    source: 'NASA EONET',        desc: 'Active wildfires, hurricanes, floods' },
+  { key: 'recalls',        label: 'FDA Recalls',       source: 'OpenFDA',           desc: 'Recent food enforcement actions' },
+  { key: 'news',           label: 'Tech News',         source: 'HackerNews',        desc: 'Top 5 stories, real-time' },
+  { key: 'iss',            label: 'ISS Location',      source: 'wheretheiss.at',    desc: 'International Space Station position' },
+  { key: 'sunrise',        label: 'Sunrise / Sunset',  source: 'SunriseSunset.io',  desc: 'Sunrise, sunset, golden hour' },
+  { key: 'moon_phase',     label: 'Moon Phase',        source: 'Math (no API)',     desc: 'Current phase + illumination %' },
+  { key: 'spacex',         label: 'Space Launches',    source: 'Space Devs LL2',    desc: 'Next upcoming + last completed launch (all agencies)' },
+  { key: 'sports',         label: 'Sports Scores',     source: 'ESPN (unofficial)', desc: 'Live scores + schedules for configured leagues' },
+]
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabName>('Appearance')
   const [currentColor, setCurrentColor] = useState('#22D3EE')
@@ -67,11 +83,6 @@ export default function SettingsPage() {
   const [healthLoading, setHealthLoading] = useState(false)
   const [config, setConfig] = useState<SiteConfig | null>(null)
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null)
-
-  // RAG fields
-  const [embeddingModel, setEmbeddingModel] = useState('')
-  const [embeddingDimensions, setEmbeddingDimensions] = useState(3072)
-  const [pineconeIndexName, setPineconeIndexName] = useState('')
 
   // Data Feeds state
   const [defaultLocation, setDefaultLocation] = useState('')
@@ -82,6 +93,11 @@ export default function SettingsPage() {
   const [sportsLeagues, setSportsLeagues] = useState('nfl,nba')
   const [feedResults, setFeedResults] = useState<Record<string, FeedResult>>({})
   const [feedTesting, setFeedTesting] = useState<Record<string, boolean>>({})
+  const [feedEnabled, setFeedEnabled] = useState<Record<string, boolean>>(() => {
+    const initial: Record<string, boolean> = {}
+    FEEDS.forEach(f => { initial[f.key] = true })
+    return initial
+  })
 
   const showToast = useCallback((msg: string, ok = true) => {
     setToast({ msg, ok })
@@ -94,9 +110,6 @@ export default function SettingsPage() {
       if (res.ok) {
         const data = await res.json() as SiteConfig & { dataFeeds?: { defaultLocation?: string; baseCurrency?: string; cryptoAssets?: string[]; earthquakeMinMagnitude?: number; stockSymbols?: string[]; sportsLeagues?: string[] } }
         setConfig(data)
-        setEmbeddingModel(data.rag?.embeddingModel ?? '')
-        setEmbeddingDimensions(data.rag?.embeddingDimensions ?? 3072)
-        setPineconeIndexName(data.rag?.pinecone?.indexName ?? '')
         if (data.dataFeeds) {
           setDefaultLocation(data.dataFeeds.defaultLocation ?? '')
           setBaseCurrency(data.dataFeeds.baseCurrency ?? 'USD')
@@ -170,24 +183,8 @@ export default function SettingsPage() {
     setStoredColor(color)
   }
 
-  const saveRAGConfig = async () => {
-    const res = await fetch('/api/admin/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        rag: {
-          embeddingModel,
-          embeddingDimensions,
-          pinecone: { indexName: pineconeIndexName },
-        },
-      }),
-    })
-    if (res.ok) {
-      showToast('RAG Config saved')
-      await loadConfig()
-    } else {
-      showToast('Error saving', false)
-    }
+  const toggleFeed = (key: string, value: boolean) => {
+    setFeedEnabled(prev => ({ ...prev, [key]: value }))
   }
 
   const services = [
@@ -243,7 +240,7 @@ export default function SettingsPage() {
         </div>
       )}
 
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <PageHeader title="Settings" icon={Settings} />
 
       {/* Tabs */}
       <div className="flex gap-1 border-b border-zinc-800">
@@ -265,7 +262,7 @@ export default function SettingsPage() {
       {/* APPEARANCE TAB */}
       {activeTab === 'Appearance' && (
         <div className="space-y-6">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <GlassCard className="p-6">
             <h3 className="text-sm font-semibold text-zinc-200 mb-4">Primary Color</h3>
             <div className="flex items-center gap-3 mb-4">
               {COLOR_OPTIONS.map(c => (
@@ -287,9 +284,9 @@ export default function SettingsPage() {
               <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: currentColor, opacity: 0.5 }} />
               <div className="h-2 flex-1 rounded-full" style={{ backgroundColor: currentColor, opacity: 0.2 }} />
             </div>
-          </div>
+          </GlassCard>
 
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <GlassCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-zinc-200">Company Details</h3>
               <Link href="/agents" className="text-xs text-[var(--color-primary)] hover:underline flex items-center gap-1">
@@ -312,14 +309,14 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
-          </div>
+          </GlassCard>
         </div>
       )}
 
       {/* CONNECTIONS TAB */}
       {activeTab === 'Connections' && (
         <div className="space-y-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6">
+          <GlassCard className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-zinc-200">Service Status</h3>
               <button
@@ -349,46 +346,7 @@ export default function SettingsPage() {
               })}
             </div>
             <p className="text-xs text-zinc-600 mt-4">API keys are set in your .env file. Restart the dev server after changes.</p>
-          </div>
-        </div>
-      )}
-
-      {/* RAG CONFIG TAB */}
-      {activeTab === 'RAG Config' && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-6 space-y-5">
-          <div className="grid grid-cols-2 gap-5">
-            <div className="col-span-2">
-              <label className="block text-xs text-zinc-500 mb-1.5">Embedding Model</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={embeddingModel}
-                onChange={e => setEmbeddingModel(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Embedding Dimensions</label>
-              <input
-                type="number"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={embeddingDimensions}
-                onChange={e => setEmbeddingDimensions(Number(e.target.value))}
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-zinc-500 mb-1.5">Pinecone Index Name</label>
-              <input
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-200 font-mono focus:outline-none focus:border-[var(--color-primary)]"
-                value={pineconeIndexName}
-                onChange={e => setPineconeIndexName(e.target.value)}
-              />
-            </div>
-          </div>
-          <button
-            onClick={saveRAGConfig}
-            className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
-          >
-            Save RAG Config
-          </button>
+          </GlassCard>
         </div>
       )}
 
@@ -396,8 +354,8 @@ export default function SettingsPage() {
       {activeTab === 'Data Feeds' && (
         <div className="space-y-5">
           {/* Feed Config */}
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 space-y-4">
-            <h3 className="text-sm font-semibold text-zinc-200">Feed Configuration</h3>
+          <GlassCard className="p-5">
+            <h3 className="text-sm font-semibold text-zinc-200 mb-4">Feed Configuration</h3>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-zinc-500 mb-1.5">Default Location</label>
@@ -463,35 +421,20 @@ export default function SettingsPage() {
             </div>
             <button
               onClick={saveFeedConfig}
-              className="px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
+              className="mt-4 px-4 py-2 rounded-md text-sm font-medium bg-[var(--color-primary)] text-black hover:opacity-90 transition-opacity"
             >
               Save Feed Config
             </button>
-          </div>
+          </GlassCard>
 
           {/* Feed Cards */}
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { key: 'weather',        label: 'Weather',           source: 'Open-Meteo',        desc: 'Current conditions + 3-day forecast' },
-              { key: 'air_quality',    label: 'Air Quality',       source: 'Open-Meteo AQ',     desc: 'AQI, PM2.5, PM10, ozone' },
-              { key: 'forex',          label: 'Forex Rates',       source: 'ExchangeRate-API',  desc: '160+ currencies, daily update' },
-              { key: 'crypto',         label: 'Crypto Prices',     source: 'CoinGecko',         desc: 'Price + 24h change, ~30 req/min' },
-              { key: 'commodities',    label: 'Commodities',       source: 'Yahoo Finance',     desc: 'Gold, silver, oil, gas, copper — spot prices' },
-              { key: 'stocks',         label: 'Stock Markets',     source: 'Yahoo Finance',     desc: 'S&P 500, Nasdaq, Dow + configurable tickers' },
-              { key: 'earthquakes',    label: 'Earthquakes',       source: 'USGS',              desc: 'Real-time global seismic activity' },
-              { key: 'natural_events', label: 'Natural Events',    source: 'NASA EONET',        desc: 'Active wildfires, hurricanes, floods' },
-              { key: 'recalls',        label: 'FDA Recalls',       source: 'OpenFDA',           desc: 'Recent food enforcement actions' },
-              { key: 'news',           label: 'Tech News',         source: 'HackerNews',        desc: 'Top 5 stories, real-time' },
-              { key: 'iss',            label: 'ISS Location',      source: 'wheretheiss.at',    desc: 'International Space Station position' },
-              { key: 'sunrise',        label: 'Sunrise / Sunset',  source: 'SunriseSunset.io',  desc: 'Sunrise, sunset, golden hour' },
-              { key: 'moon_phase',     label: 'Moon Phase',        source: 'Math (no API)',     desc: 'Current phase + illumination %' },
-              { key: 'spacex',         label: 'Space Launches',    source: 'Space Devs LL2',    desc: 'Next upcoming + last completed launch (all agencies)' },
-              { key: 'sports',         label: 'Sports Scores',     source: 'ESPN (unofficial)', desc: 'Live scores + schedules for configured leagues' },
-            ].map(feed => {
+          <div className="grid grid-cols-3 gap-3">
+            {FEEDS.map(feed => {
               const res = feedResults[feed.key]
               const testing = feedTesting[feed.key]
+              const enabled = feedEnabled[feed.key] ?? true
               return (
-                <div key={feed.key} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                <GlassCard key={feed.key} className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
                       <Globe size={14} className="text-zinc-500 shrink-0 mt-0.5" />
@@ -500,14 +443,12 @@ export default function SettingsPage() {
                         <p className="text-[10px] text-zinc-500">{feed.source}</p>
                       </div>
                     </div>
-                    <span className="text-[9px] font-medium text-emerald-400 border border-emerald-800 bg-emerald-950/40 rounded px-1.5 py-0.5 shrink-0">
-                      No key required
-                    </span>
+                    <Toggle enabled={enabled} onChange={(val) => toggleFeed(feed.key, val)} />
                   </div>
                   <p className="text-xs text-zinc-500 mb-3">{feed.desc}</p>
                   <button
                     onClick={() => testFeed(feed.key)}
-                    disabled={testing}
+                    disabled={testing || !enabled}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border border-zinc-700 text-zinc-300 hover:border-[var(--color-primary)] hover:text-[var(--color-primary)] transition-colors disabled:opacity-40"
                   >
                     <Zap size={10} />
@@ -518,7 +459,7 @@ export default function SettingsPage() {
                       {res.ok ? res.result || '(no data returned)' : res.error}
                     </div>
                   )}
-                </div>
+                </GlassCard>
               )
             })}
           </div>

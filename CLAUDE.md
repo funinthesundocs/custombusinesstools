@@ -16,7 +16,7 @@ See `VISION.md` for the full governing intent.
 ## Architecture
 - **Opus** = Brain (context engineer, production router, agent coordinator)
 - **Production Engines** = Model-agnostic routing (see .claude/rules/production-routing.md)
-- **Dashboard** = Next.js command center at localhost:8888
+- **Dashboard** = Next.js command center at localhost:3002
 - **Supabase** = Knowledge store (structured data + pgvector embeddings)
 - **Presentation Site** = Client-facing deliverable (separate Next.js build)
 
@@ -79,7 +79,7 @@ NEVER assume one engine handles everything. Route per task:
 - `production/source-documents/` — 9 curated documents for production engines
 - `production/prompts/` — Engine-specific prompts per deliverable
 - `production/outputs/` — Versioned deliverable outputs (v1/v2/v3/final)
-- `web/dashboard/` — RAG Factory Dashboard (localhost:8888)
+- `web/dashboard/` — RAG Factory Dashboard (localhost:3002)
 - `web/presentation/` — Client-facing deliverable site
 - `docs/` — Narrative arc, meeting prep, design specs
 

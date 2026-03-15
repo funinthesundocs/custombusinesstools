@@ -7,8 +7,10 @@ import type { ActivityLog } from '@/lib/types'
 import {
   Database, Cpu, Cloud, Mic, BarChart3,
   Layers, MessageSquare, FolderOpen, ClipboardList,
+  LayoutDashboard,
 } from 'lucide-react'
-import Link from 'next/link'
+import { PageHeader } from '@/components/PageHeader'
+import { GlassCard } from '@/components/GlassCard'
 
 interface HealthData {
   supabase: { status: string; detail: string }
@@ -55,6 +57,12 @@ function statusColor(status: string) {
   return 'text-red-400'
 }
 
+function severityDotClass(severity: string | undefined) {
+  if (severity === 'success') return 'bg-emerald-400'
+  if (severity === 'warning') return 'bg-amber-400'
+  if (severity === 'error') return 'bg-red-400'
+  return 'bg-zinc-500'
+}
 
 export default function DashboardPage() {
   const [health, setHealth] = useState<HealthData | null>(null)
@@ -174,7 +182,7 @@ export default function DashboardPage() {
     detail: 'Checking...',
   }))
 
-  const metrics = [
+  const stats = [
     {
       label: 'Total Vectors',
       value: health?.pinecone.vectorCount != null ? health.pinecone.vectorCount.toLocaleString() : '—',
@@ -182,10 +190,10 @@ export default function DashboardPage() {
       color: 'text-violet-400',
     },
     {
-      label: 'Research Tasks',
-      value: tasks.length > 0 ? `${pendingTasks} pending / ${completeTasks} done` : '—',
-      icon: ClipboardList,
-      color: 'text-amber-400',
+      label: 'Knowledge Files',
+      value: fileCount != null ? fileCount.toLocaleString() : '—',
+      icon: FolderOpen,
+      color: 'text-emerald-400',
     },
     {
       label: 'Conversations',
@@ -194,80 +202,66 @@ export default function DashboardPage() {
       color: 'text-blue-400',
     },
     {
-      label: 'Knowledge Files',
-      value: fileCount != null ? fileCount.toLocaleString() : '—',
-      icon: FolderOpen,
-      color: 'text-emerald-400',
+      label: 'Research Tasks',
+      value: tasks.length > 0 ? `${pendingTasks} pending / ${completeTasks} done` : '—',
+      icon: ClipboardList,
+      color: 'text-amber-400',
     },
   ]
 
-  const recentActivities = activities.slice(0, 5)
+  const feedActivities = activities.slice(0, 15)
 
   return (
     <div className="page-enter space-y-6">
-      <h1 className="text-2xl font-semibold">System Health</h1>
+      <PageHeader
+        title="Dashboard"
+        icon={LayoutDashboard}
+        stats={stats}
+      />
 
-      {/* Service Health Strip */}
-      <div className="grid grid-cols-6 gap-3">
-        {services.map((svc) => {
-          const Icon = svc.icon
-          return (
-            <div key={svc.name} className="rounded-lg border border-zinc-800 bg-zinc-900 p-3 hover:border-zinc-700 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={14} className={statusColor(svc.status)} />
-                <StatusDot status={svc.status} />
-              </div>
-              <p className="text-xs font-medium text-zinc-200 mb-0.5">{svc.name}</p>
-              <p className={`text-[10px] truncate ${statusColor(svc.status)}`}>{svc.detail}</p>
-            </div>
-          )
-        })}
-      </div>
-
-      {/* Pipeline Stats */}
-      <div className="grid grid-cols-4 gap-4">
-        {metrics.map(m => {
-          const Icon = m.icon
-          return (
-            <div key={m.label} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4 hover:border-zinc-700 transition-colors">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon size={16} className={m.color} />
-                <span className="text-xs text-zinc-500">{m.label}</span>
-              </div>
-              <p className="text-xl font-semibold text-zinc-100 font-mono">{m.value}</p>
-            </div>
-          )
-        })}
+      {/* Service Health */}
+      <div>
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Service Health</h2>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+          {services.map((svc) => {
+            const Icon = svc.icon
+            return (
+              <GlassCard key={svc.name} className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon size={14} className={statusColor(svc.status)} />
+                  <StatusDot status={svc.status} />
+                </div>
+                <p className="text-xs font-medium text-zinc-200 mb-0.5">{svc.name}</p>
+                <p className={`text-[10px] truncate ${statusColor(svc.status)}`}>{svc.detail}</p>
+              </GlassCard>
+            )
+          })}
+        </div>
       </div>
 
       {/* Activity Feed */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-semibold text-zinc-200">Recent Activity</h3>
-          <Link href="/activity" className="text-xs text-[var(--color-primary)] hover:underline">View all →</Link>
-        </div>
-        <div className="space-y-2">
-          {recentActivities.length === 0 ? (
-            <p className="text-xs text-zinc-500 italic">No activity yet.</p>
-          ) : (
-            recentActivities.map(a => (
-              <div key={a.id} className="flex items-start gap-3 rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
-                <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
-                  a.severity === 'success' ? 'bg-emerald-400' :
-                  a.severity === 'warning' ? 'bg-amber-400' :
-                  a.severity === 'error' ? 'bg-red-400' : 'bg-zinc-500'
-                }`} />
-                <div className="min-w-0">
-                  <p className="text-sm text-zinc-200 truncate">{a.title}</p>
-                  {a.detail && <p className="text-xs text-zinc-500 truncate">{a.detail}</p>}
-                  <p className="text-[10px] text-zinc-600 font-mono mt-1">
-                    {new Date(a.created_at).toLocaleString()}
-                  </p>
+        <h2 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">Activity Feed</h2>
+        <GlassCard hover={false} className="p-4">
+          <div className="max-h-[480px] overflow-y-auto space-y-2 pr-1">
+            {feedActivities.length === 0 ? (
+              <p className="text-xs text-zinc-500 italic">No activity yet.</p>
+            ) : (
+              feedActivities.map(a => (
+                <div key={a.id} className="flex items-start gap-3 rounded-lg bg-white/[0.02] p-3">
+                  <span className={`mt-1 h-2 w-2 shrink-0 rounded-full ${severityDotClass(a.severity)}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-zinc-200 truncate">{a.title}</p>
+                    {a.detail && <p className="text-xs text-zinc-500 truncate">{a.detail}</p>}
+                    <p className="text-xs text-zinc-600 font-mono mt-1">
+                      {new Date(a.created_at).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        </GlassCard>
       </div>
     </div>
   )

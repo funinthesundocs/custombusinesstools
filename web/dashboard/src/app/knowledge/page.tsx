@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   FolderOpen, Plus, Upload, Trash2, Eye, MoreHorizontal, X, File,
-  Cpu, ChevronDown, CheckCircle,
+  Cpu, ChevronDown, CheckCircle, BookOpen,
 } from 'lucide-react'
+import { PageHeader } from '@/components/PageHeader'
+import { GlassCard } from '@/components/GlassCard'
 
 interface FolderInfo { name: string; fileCount: number; path: string }
 interface FileInfo { name: string; size: number; ext: string; path: string }
@@ -274,7 +276,7 @@ export default function KnowledgePage() {
         </div>
       )}
 
-      <h1 className="text-2xl font-semibold">Knowledge</h1>
+      <PageHeader title="Knowledge Base" icon={BookOpen} description="Manage documents and sync embeddings" />
 
       {/* Two-column: KB left, Embed right */}
       <div className="grid grid-cols-[1fr_380px] gap-5" style={{ minHeight: '520px' }}>
@@ -282,8 +284,8 @@ export default function KnowledgePage() {
         {/* LEFT: Folder list + file panel */}
         <div className="flex gap-4 min-h-[520px]">
           {/* Folder list */}
-          <div className="w-52 shrink-0 rounded-lg border border-zinc-800 bg-zinc-900 flex flex-col">
-            <div className="flex items-center justify-between p-3 border-b border-zinc-800">
+          <div className="w-52 shrink-0 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md flex flex-col">
+            <div className="flex items-center justify-between p-3 border-b border-white/5">
               <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Folders</p>
               <button
                 onClick={() => setShowNewFolder(true)}
@@ -352,13 +354,13 @@ export default function KnowledgePage() {
                 <p className="text-xs text-zinc-600 italic p-2">No folders yet. Click + to create one.</p>
               )}
             </div>
-            <div className="p-3 border-t border-zinc-800">
+            <div className="p-3 border-t border-white/5">
               <p className="text-[10px] text-zinc-500">{folders.length} folders · {totalFiles} files</p>
             </div>
           </div>
 
           {/* File panel */}
-          <div className="flex-1 rounded-lg border border-zinc-800 bg-zinc-900 flex flex-col">
+          <div className="flex-1 rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md flex flex-col">
             {!selectedFolder ? (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
@@ -368,7 +370,7 @@ export default function KnowledgePage() {
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+                <div className="flex items-center justify-between p-4 border-b border-white/5">
                   <h2 className="text-sm font-semibold text-zinc-200">{selectedFolder}</h2>
                   <div className="flex items-center gap-2">
                     {Object.keys(uploadProgress).length > 0 && (
@@ -400,7 +402,7 @@ export default function KnowledgePage() {
                   ) : (
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-zinc-800">
+                        <tr className="border-b border-white/5">
                           <th className="text-left py-2 px-2 text-xs text-zinc-500 font-medium">Name</th>
                           <th className="text-left py-2 px-2 text-xs text-zinc-500 font-medium">Type</th>
                           <th className="text-left py-2 px-2 text-xs text-zinc-500 font-medium">Size</th>
@@ -409,7 +411,7 @@ export default function KnowledgePage() {
                       </thead>
                       <tbody>
                         {files.map(file => (
-                          <tr key={file.name} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                          <tr key={file.name} className="border-b border-white/5/50 hover:bg-zinc-800/30 transition-colors">
                             <td className="py-2 px-2 text-zinc-200 font-mono text-xs truncate max-w-[160px]">{file.name}</td>
                             <td className="py-2 px-2"><span className="text-[10px] bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded uppercase font-mono">{file.ext || '—'}</span></td>
                             <td className="py-2 px-2 text-zinc-500 text-xs">{formatSize(file.size)}</td>
@@ -434,7 +436,7 @@ export default function KnowledgePage() {
 
         {/* RIGHT: Embed panel */}
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5 flex flex-col gap-4">
+          <div className="rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md p-5 flex flex-col gap-4">
             <h3 className="text-sm font-semibold text-zinc-200 flex items-center gap-2">
               <Cpu size={15} className="text-[var(--color-primary)]" />
               Embed
@@ -504,7 +506,7 @@ export default function KnowledgePage() {
               </button>
             )}
 
-            <div ref={terminalRef} className="h-[200px] overflow-y-auto bg-zinc-950 rounded-lg border border-zinc-800 p-3 font-mono text-xs">
+            <div ref={terminalRef} className="h-[200px] overflow-y-auto bg-zinc-950 rounded-lg border border-white/5 p-3 font-mono text-xs">
               {outputLines.length === 0 ? (
                 <p className="text-zinc-600">Output will appear here...</p>
               ) : (
@@ -521,7 +523,7 @@ export default function KnowledgePage() {
           </div>
 
           {/* Pinecone status */}
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+          <div className="rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-5">
                 <div>
@@ -550,12 +552,12 @@ export default function KnowledgePage() {
 
       {/* Auto-Research Results — full width, shown only when there are results */}
       {visibleTasks.length > 0 && (
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
+        <div className="rounded-xl border border-white/5 bg-zinc-900/40 backdrop-blur-md p-5">
           <h3 className="text-sm font-semibold text-zinc-200 mb-4">Auto-Research Results</h3>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-zinc-800">
+                <tr className="border-b border-white/5">
                   <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Question</th>
                   <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Answer Preview</th>
                   <th className="text-left py-2 px-3 text-xs text-zinc-500 font-medium">Date</th>
@@ -567,7 +569,7 @@ export default function KnowledgePage() {
                   const question = (task.payload?.question as string) || '—'
                   const answer = (task.result?.text as string) || JSON.stringify(task.result) || ''
                   return (
-                    <tr key={task.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30 transition-colors">
+                    <tr key={task.id} className="border-b border-white/5/50 hover:bg-zinc-800/30 transition-colors">
                       <td className="py-2 px-3 text-zinc-200 text-xs max-w-xs truncate">{question}</td>
                       <td className="py-2 px-3 text-zinc-500 text-xs max-w-sm truncate">{answer.slice(0, 80)}{answer.length > 80 ? '...' : ''}</td>
                       <td className="py-2 px-3 text-zinc-600 text-xs font-mono">{new Date(task.created_at).toLocaleDateString()}</td>
@@ -633,7 +635,7 @@ export default function KnowledgePage() {
       {viewFile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
           <div className="bg-zinc-900 border border-zinc-700 rounded-lg w-[700px] max-h-[80vh] flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between p-4 border-b border-zinc-800">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
               <p className="text-sm font-medium text-zinc-200 font-mono">{viewFile.name}</p>
               <button onClick={() => setViewFile(null)} className="text-zinc-500 hover:text-zinc-300"><X size={16} /></button>
             </div>
