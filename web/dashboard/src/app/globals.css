@@ -115,25 +115,45 @@ body {
   filter: drop-shadow(0 0 4px rgba(34, 211, 238, 0.8));
 }
 
-/* ── Machine Zone Animations ── */
+/* ── Machine Zone — invisible, no hover effects ── */
 .machine-zone {
-  animation: idle-pulse 3s ease-in-out infinite;
-  transition: all 200ms ease;
-  cursor: pointer;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.3);
-  backdrop-filter: blur(2px);
+  background: transparent;
+  outline: none;
+  border: none;
 }
 
 .machine-zone:hover {
-  animation: active-glow 1s ease-in-out infinite;
-  background: rgba(0, 0, 0, 0.15);
+  /* No visible hover effect — the animation IS the interaction cue */
 }
 
 .machine-zone.active {
-  animation: active-glow 1s ease-in-out infinite;
 }
 
 .machine-zone.researching {
-  animation: research-pulse 2s ease-in-out infinite;
+}
+
+/* ── Rotating Gear Animations ── */
+@keyframes spin-cw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spin-ccw {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(-360deg); }
+}
+
+/* Reduced motion: pause all gear and machine animations */
+@media (prefers-reduced-motion: reduce) {
+  .machine-zone,
+  .machine-zone:hover,
+  .machine-zone.active,
+  .machine-zone.researching {
+    filter: none;
+    transition: none;
+  }
+  img[style*="spin-cw"],
+  img[style*="spin-ccw"] {
+    animation: none !important;
+  }
 }

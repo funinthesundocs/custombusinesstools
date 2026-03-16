@@ -3,15 +3,8 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { MachineOverlay } from '@/components/pipeline/MachineOverlay'
 import { MobileStageCard } from '@/components/pipeline/MobileStageCard'
-import { SCurveParticle } from '@/components/pipeline/SCurveParticle'
 import { ResearchIndicator } from '@/components/pipeline/ResearchIndicator'
-import { FunnelMachine } from '@/components/pipeline/FunnelMachine'
-import { FactoryMachine } from '@/components/pipeline/FactoryMachine'
-import { RadarMachine } from '@/components/pipeline/RadarMachine'
-import { GateMachine } from '@/components/pipeline/GateMachine'
-import { SatelliteMachine } from '@/components/pipeline/SatelliteMachine'
-import { AssemblyMachine } from '@/components/pipeline/AssemblyMachine'
-import { PressMachine } from '@/components/pipeline/PressMachine'
+import { AnimatedMachine } from '@/components/pipeline/AnimatedMachine'
 
 /* ── Types ── */
 interface HealthData {
@@ -39,7 +32,7 @@ interface FolderInfo {
   path: string
 }
 
-/* ── Stage definitions ── */
+/* ── Stage definitions with video animations ── */
 const stages = [
   {
     stage: 1,
@@ -47,8 +40,9 @@ const stages = [
     description: 'Ingesting raw documents and data into the system',
     href: '/knowledge',
     tooltip: 'Knowledge Base — manage files and folders',
-    position: { left: '5%', top: '3%', width: '20%', height: '30%' },
+    position: { left: '1.8%', top: '2.0%', width: '18.2%', height: '29.3%' },
     metricKey: 'files' as const,
+    video: '/animations/knowledge-drop-animated.mp4',
   },
   {
     stage: 2,
@@ -56,8 +50,9 @@ const stages = [
     description: 'Chunking documents and embedding vectors for search',
     href: '/knowledge',
     tooltip: 'Embedding Pipeline — sync and re-embed',
-    position: { left: '33%', top: '1%', width: '25%', height: '30%' },
+    position: { left: '25.4%', top: '1.3%', width: '25.4%', height: '31.2%' },
     metricKey: 'vectors' as const,
+    video: '/animations/factory-animated.mp4',
   },
   {
     stage: 3,
@@ -65,8 +60,9 @@ const stages = [
     description: 'Receiving user queries for information retrieval',
     href: '/agents?tab=test',
     tooltip: 'Test Agent — ask questions and see retrieval',
-    position: { left: '66%', top: '1%', width: '24%', height: '32%' },
+    position: { left: '60.0%', top: '0.7%', width: '23.6%', height: '31.9%' },
     metricKey: 'score' as const,
+    video: '/animations/question-animated.mp4',
   },
   {
     stage: 4,
@@ -74,8 +70,9 @@ const stages = [
     description: 'Filtering responses based on relevance and quality',
     href: '/workshop',
     tooltip: 'Workshop — RAG tuning and thresholds',
-    position: { left: '56%', top: '38%', width: '25%', height: '28%' },
+    position: { left: '47.2%', top: '31.2%', width: '29.1%', height: '30.6%' },
     metricKey: 'confidence' as const,
+    video: '/animations/confidence-gate-animated.mp4',
   },
   {
     stage: 5,
@@ -83,8 +80,9 @@ const stages = [
     description: 'Incorporating real-time external data for context',
     href: '/settings',
     tooltip: 'Settings — configure data feeds',
-    position: { left: '17%', top: '36%', width: '30%', height: '30%' },
+    position: { left: '7.3%', top: '35.8%', width: '30.9%', height: '24.7%' },
     metricKey: 'feeds' as const,
+    video: '/animations/live-data-feeds-animated.mp4',
   },
   {
     stage: 6,
@@ -92,8 +90,9 @@ const stages = [
     description: 'Generating final outputs by combining retrieved information',
     href: '/agents',
     tooltip: 'Agent Configure — system prompt and identity',
-    position: { left: '10%', top: '72%', width: '35%', height: '26%' },
+    position: { left: '3.6%', top: '65.1%', width: '38.2%', height: '28.0%' },
     metricKey: 'model' as const,
+    video: '/animations/assembly-line-animated.mp4',
   },
   {
     stage: 7,
@@ -101,21 +100,11 @@ const stages = [
     description: 'Presenting the synthesized response to the user',
     href: '/agents?tab=test',
     tooltip: 'Agent Test — conversation history and responses',
-    position: { left: '55%', top: '72%', width: '33%', height: '26%' },
+    position: { left: '45.4%', top: '65.1%', width: '43.6%', height: '28.0%' },
     metricKey: 'conversations' as const,
+    video: '/animations/delivery-animated.mp4',
   },
 ]
-
-/* ── Machine components map ── */
-const MachineComponents: Record<number, React.FC<{ confidence?: number; isResearching?: boolean }>> = {
-  1: FunnelMachine,
-  2: FactoryMachine,
-  3: RadarMachine,
-  4: GateMachine,
-  5: SatelliteMachine,
-  6: AssemblyMachine,
-  7: PressMachine,
-}
 
 /* ── Component ── */
 export default function DashboardPage() {
@@ -237,35 +226,29 @@ export default function DashboardPage() {
             className="absolute inset-0 w-full h-full object-contain"
           />
 
-          {/* S-curve data particle (GSAP MotionPath) */}
-          <SCurveParticle />
-
-          {/* 7 Animated Machine Stage overlays */}
-          {stages.map((s) => {
-            const MachineComponent = MachineComponents[s.stage]
-            return (
-              <MachineOverlay
-                key={s.stage}
-                stage={s.stage}
-                label={s.label}
-                position={s.position}
-                href={s.href}
-                tooltip={s.tooltip}
-                metric={getMetric(s.metricKey)}
-                active={s.metricKey === 'confidence' && pendingResearch > 0}
-                variant={
-                  s.metricKey === 'confidence' && pendingResearch > 0
-                    ? 'red'
-                    : 'default'
-                }
-              >
-                <MachineComponent
-                  confidence={s.stage === 4 ? 85 : undefined}
-                  isResearching={s.stage === 4 ? pendingResearch > 0 : undefined}
-                />
-              </MachineOverlay>
-            )
-          })}
+          {/* 7 Animated Machine Stages — real Kling-animated baseplate art */}
+          {stages.map((s) => (
+            <MachineOverlay
+              key={s.stage}
+              stage={s.stage}
+              label={s.label}
+              position={s.position}
+              href={s.href}
+              tooltip={s.tooltip}
+              active={s.metricKey === 'confidence' && pendingResearch > 0}
+              variant={
+                s.metricKey === 'confidence' && pendingResearch > 0
+                  ? 'red'
+                  : 'default'
+              }
+            >
+              {s.video ? (
+                <AnimatedMachine src={s.video} />
+              ) : (
+                <div />
+              )}
+            </MachineOverlay>
+          ))}
 
           {/* Research indicator */}
           {pendingResearch > 0 && (

@@ -14,85 +14,68 @@ interface GateMachineProps {
 export function GateMachine({ confidence = 85, isResearching = false }: GateMachineProps) {
   const containerRef = useRef<SVGSVGElement>(null)
   const needleRef = useRef<SVGLineElement>(null)
-  const armRef = useRef<SVGRectElement>(null)
 
   useGSAP(() => {
     const ctx = containerRef.current
     if (!ctx) return
 
-    // Gate gears spin slowly
+    // Gate gears spin — glowing outlines
     gsap.to(ctx.querySelector('#gate-gear-1'), {
       rotation: 360, duration: 8, ease: 'none', repeat: -1, transformOrigin: 'center'
     })
     gsap.to(ctx.querySelector('#gate-gear-2'), {
       rotation: -360, duration: 6, ease: 'none', repeat: -1, transformOrigin: 'center'
     })
+
+    // Gauge arc glow pulse
+    gsap.to(ctx.querySelector('#gauge-arc'), {
+      filter: 'drop-shadow(0 0 6px rgba(34, 211, 238, 0.5))',
+      duration: 2, yoyo: true, repeat: -1, ease: 'sine.inOut'
+    })
   }, { scope: containerRef })
 
-  // Reactive: gauge needle and gate arm respond to confidence
+  // Reactive: gauge needle responds to confidence
   useEffect(() => {
     if (needleRef.current) {
-      const angle = -90 + (confidence / 100) * 180  // -90 to +90
+      const angle = -90 + (confidence / 100) * 180
       gsap.to(needleRef.current, {
         rotation: angle, duration: 1.5, ease: 'elastic.out(1, 0.3)',
         transformOrigin: '100% 100%'
-      })
-    }
-    if (armRef.current) {
-      gsap.to(armRef.current, {
-        rotation: isResearching ? 0 : -80,
-        duration: 1.2,
-        ease: isResearching ? 'power4.in' : 'elastic.out(1, 0.4)',
-        transformOrigin: '0% 50%'
       })
     }
   }, [confidence, isResearching])
 
   return (
     <svg ref={containerRef} viewBox="0 0 200 180" className="w-full h-full" fill="none">
-      {/* Gate body */}
-      <rect x="30" y="50" width="140" height="90" rx="4" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="1.5" />
-      <rect x="35" y="55" width="130" height="4" fill="#2a2a2a" />
+      {/* Traffic light — just the glowing lenses, no housing */}
+      <circle cx="100" cy="72" r="8"
+        fill={isResearching ? 'rgba(239, 68, 68, 0.6)' : 'rgba(239, 68, 68, 0.05)'}
+        style={{ filter: isResearching ? 'drop-shadow(0 0 15px rgba(239, 68, 68, 0.9))' : 'none' }} />
+      <circle cx="100" cy="100" r="8"
+        fill={isResearching ? 'rgba(34, 197, 94, 0.05)' : 'rgba(34, 197, 94, 0.6)'}
+        style={{ filter: !isResearching ? 'drop-shadow(0 0 15px rgba(34, 197, 94, 0.9))' : 'none' }} />
 
-      {/* Traffic light */}
-      <rect x="85" y="60" width="30" height="55" rx="6" fill="#111" stroke="#444" strokeWidth="1" />
-      <circle id="lens-red" cx="100" cy="72" r="7"
-        fill={isResearching ? '#EF4444' : '#551111'}
-        stroke="#333" strokeWidth="0.5"
-        style={{ filter: isResearching ? 'drop-shadow(0 0 10px rgba(239, 68, 68, 0.8))' : 'none' }} />
-      <circle id="lens-green" cx="100" cy="100" r="7"
-        fill={isResearching ? '#114411' : '#22C55E'}
-        stroke="#333" strokeWidth="0.5"
-        style={{ filter: !isResearching ? 'drop-shadow(0 0 10px rgba(34, 197, 94, 0.8))' : 'none' }} />
-
-      {/* Gauge */}
-      <g transform="translate(55, 120)">
-        <path d="M0 0 A30 30 0 0 1 60 0" fill="none" stroke="#333" strokeWidth="2" />
-        <path d="M0 0 A30 30 0 0 1 60 0" fill="none" stroke="#22D3EE" strokeWidth="1" strokeDasharray="2 4" />
-        <text x="30" y="12" textAnchor="middle" fill="#22D3EE" fontSize="7" fontFamily="monospace">{confidence}%</text>
+      {/* Gauge arc — bright */}
+      <g transform="translate(55, 125)">
+        <path id="gauge-arc" d="M0 0 A30 30 0 0 1 60 0" fill="none" stroke="rgba(34, 211, 238, 0.4)" strokeWidth="2" />
+        <path d="M0 0 A30 30 0 0 1 60 0" fill="none" stroke="rgba(34, 211, 238, 0.3)" strokeWidth="1" strokeDasharray="2 4" />
+        <text x="30" y="12" textAnchor="middle" fill="rgba(34, 211, 238, 0.8)" fontSize="7" fontFamily="monospace">{confidence}%</text>
       </g>
-      {/* Gauge needle springs to position */}
-      <line ref={needleRef} x1="85" y1="120" x2="85" y2="96" stroke="#FBBF24" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Gauge needle — bright amber */}
+      <line ref={needleRef} x1="85" y1="125" x2="85" y2="100" stroke="#FBBF24" strokeWidth="2" strokeLinecap="round"
+        style={{ filter: 'drop-shadow(0 0 4px rgba(251, 191, 36, 0.8))' }} />
 
-      {/* Gate arm */}
-      <rect ref={armRef} x="140" y="80" width="50" height="5" rx="1" fill="#444" stroke="#FBBF24" strokeWidth="0.5" />
-      <circle cx="140" cy="82" r="4" fill="#333" stroke="#22D3EE" strokeWidth="0.5" />
-
-      {/* Gate gears */}
-      <g id="gate-gear-1" transform="translate(45, 90)">
-        <circle r="10" fill="#2a2a2a" stroke="#444" strokeWidth="0.5" />
-        <circle r="6" fill="none" stroke="#555" strokeWidth="1" strokeDasharray="3 2" />
-        <circle r="2" fill="#1a1a1a" />
+      {/* Gate gears — glowing outlines */}
+      <g id="gate-gear-1" transform="translate(40, 90)">
+        <circle r="12" fill="none" stroke="rgba(34, 211, 238, 0.3)" strokeWidth="1" />
+        <circle r="8" fill="none" stroke="rgba(34, 211, 238, 0.2)" strokeWidth="1" strokeDasharray="3 2" />
+        <circle r="2.5" fill="rgba(34, 211, 238, 0.3)" />
       </g>
-      <g id="gate-gear-2" transform="translate(155, 90)">
-        <circle r="10" fill="#2a2a2a" stroke="#444" strokeWidth="0.5" />
-        <circle r="6" fill="none" stroke="#555" strokeWidth="1" strokeDasharray="3 2" />
-        <circle r="2" fill="#1a1a1a" />
+      <g id="gate-gear-2" transform="translate(160, 90)">
+        <circle r="12" fill="none" stroke="rgba(20, 184, 166, 0.3)" strokeWidth="1" />
+        <circle r="8" fill="none" stroke="rgba(20, 184, 166, 0.2)" strokeWidth="1" strokeDasharray="3 2" />
+        <circle r="2.5" fill="rgba(20, 184, 166, 0.3)" />
       </g>
-
-      {/* Base */}
-      <rect x="25" y="145" width="150" height="10" rx="3" fill="#1a1a1a" stroke="#2a2a2a" strokeWidth="1" />
-      <line x1="35" y1="150" x2="165" y2="150" stroke="#22D3EE" strokeWidth="0.3" opacity="0.3" />
     </svg>
   )
 }
