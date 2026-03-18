@@ -87,18 +87,24 @@
 | `Suppression flag ≠ action flag` | Pre-setting a boolean to `true` to suppress a detection path reuses the same variable to mean "this action should fire" — causing the suppressed behavior to trigger instead; split into two explicitly named variables the moment a flag must serve both purposes. | Prevention | When writing boolean state for any async flow, feature flag, or event system where "skip detection" and "trigger action" share the same variable | Hard Constraint |
 | `Report observed values, not documented defaults` | When producing status summaries, boot reports, or system state descriptions, use values directly observed from process output (actual port, actual version, actual URL) — never substitute values from documentation or config files, which may be stale or overridden at runtime. | Prevention | When generating any status report, boot summary, or system state description that includes ports, versions, endpoints, or other runtime values | Hard Constraint |
 | `Import success does not mean library works` | When a native code binding (Rust/C extension) imports without error, it does NOT mean it functions correctly — the binding may segfault when processing actual data, especially on newer Python versions. Always test with real data processing before building a pipeline around it. | Prevention | When incorporating any native/compiled Python package (Rust bindings, C extensions) into an automated pipeline, especially on Python 3.13+ | Hard Constraint |
+| `Never wrap commands in parent shell` | Never use `cmd /c` (Windows) or `sh -c` (Unix) to run shell commands when the target shell can execute them natively — the parent shell subprocess adds 10+ seconds of startup overhead with no diagnostic output, causing silent hangs. | Prevention | When writing any shell command in a script, protocol, or automation that runs inside Git Bash, WSL, or any non-native shell environment | Hard Constraint |
+| `Protocol steps parallel by dependency` | When designing multi-step automated workflows, organize steps by dependency graph (parallel if independent) not by sequential numbering — "step 1, step 2, step 3" format implicitly encodes sequential execution even when steps are independent, causing proportional time waste per step. | Prevention | When writing or reviewing any multi-step protocol, slash command, skill, CI/CD pipeline, or agent workflow with numbered steps | Hard Constraint |
+| `Skip system-loaded context in protocols` | Never re-read files that the runtime environment has already loaded into context (project instructions, auto-memory, rules files) — each redundant read wastes a full tool round trip for zero new information, and the cost compounds linearly per invocation. | Prevention | When writing any agent protocol or slash command that reads project configuration files — check whether the system already provides them | Hard Constraint |
 
 **Metrics** *(updated at harvest)*
 
 | Pearl | Maturity | Added | Review By | Opportunities | Uses | Min/Use | Total Saved | Hit Rate |
 |-------|----------|-------|-----------|---------------|------|---------|-------------|----------|
-| `Grep does not satisfy Edit's read requirement` | Established | (unknown) | 2026-09-14 | 2 | 2 | ? | ? | 100% |
-| `Dev script may not be at repo root` | Confirmed | 2026-03-14 | 2026-09-14 | 5 | 5 | 5 | 25 | 100% |
+| `Grep does not satisfy Edit's read requirement` | Established | (unknown) | 2026-09-14 | 3 | 2 | ? | ? | 67% |
+| `Dev script may not be at repo root` | Confirmed | 2026-03-14 | 2026-09-14 | 6 | 6 | 5 | 30 | 100% |
 | `Windows paths in .env use forward slashes` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 20 | 20 | 100% |
 | `Markdown tables: skip header AND separator` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 10 | 10 | 100% |
 | `Suppression flag ≠ action flag` | Seed | 2026-03-14 | 2026-09-14 | 1 | 1 | 30 | 30 | 100% |
-| `Report observed values, not documented defaults` | Seed | 2026-03-15 | 2026-09-15 | 2 | 2 | 3 | 6 | 100% |
+| `Report observed values, not documented defaults` | Seed | 2026-03-15 | 2026-09-15 | 3 | 2 | 3 | 6 | 67% |
 | `Import success does not mean library works` | Seed | 2026-03-15 | 2026-09-15 | 1 | 1 | 15 | 15 | 100% |
+| `Never wrap commands in parent shell` | Seed | 2026-03-18 | 2026-09-18 | 0 | 0 | 5 | 0 | — |
+| `Protocol steps parallel by dependency` | Seed | 2026-03-18 | 2026-09-18 | 0 | 0 | 3 | 0 | — |
+| `Skip system-loaded context in protocols` | Seed | 2026-03-18 | 2026-09-18 | 0 | 0 | 2 | 0 | — |
 
 ---
 
