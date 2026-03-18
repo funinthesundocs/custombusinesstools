@@ -1,142 +1,118 @@
 # /boot — Session Alignment Protocol
 
-Execute every step in order. Do not skip steps. This protocol works for ANY agent
-(CLI, IDE, API) working in this repo.
+Boot must complete in **2 tool rounds maximum**. Parallelism is mandatory.
 
 ---
 
-## Step 1 — Pull Latest Changes
+## Round 1 — Everything parallel
 
-Run `git pull`. If it fails, note it and continue.
+Fire ALL of these simultaneously. They have zero dependencies on each other.
+
+### 1a. Git pull + context detection + port check + harvest check (single Bash call)
+
+Combine into ONE bash command:
+
+```bash
+git pull 2>&1; echo "===CONTEXT==="; grep '"name"' package.json 2>/dev/null | head -1; echo "===PORT==="; grep -i "localhost" CLAUDE.md 2>/dev/null | head -3; echo "===DEVDIR==="; grep -rl '"dev"' --include="package.json" --exclude-dir=node_modules . 2>/dev/null | head -5; echo "===NETSTAT==="; netstat -ano 2>/dev/null | grep ":${DEV_PORT:-3002}.*LISTENING" || echo "PORT_FREE"; echo "===HARVEST==="; git log --format="%ai %s" --grep="harvest" -1 2>/dev/null || echo "NEVER"
+```
+
+**NEVER use `cmd /c` for any command** — it spawns a full Windows shell and hangs for 10+ seconds. All commands here work natively in Git Bash.
+
+From results, derive:
+- **PROJECT_NAME** — from package.json name, or first heading in CLAUDE.md
+- **DEV_PORT** — from `localhost:XXXX` in CLAUDE.md; fallback 3000
+- **DEV_DIR** — directory of the package.json containing the dev script (may be a subdirectory)
+- **PORT_STATUS** — occupied or free
+- **HARVEST_DATE** — date of last harvest commit
+
+### 1b. Read pearls (Read tool)
+
+Read `.agent/alignment/pearls.md`. Read only the Guidance tables — skip Metrics.
+
+- Group by Confidence level
+- Count totals, unvalued (Min/Use = ?), and overdue (Review By in past)
+- Internalize silently — do NOT list pearls back to the user
+
+If file doesn't exist: "No pearls file found."
+
+### 1c. Read VISION.md (Read tool)
+
+Read `VISION.md` at repo root. Internalize the 5 principles and eagle view test.
+
+### 1d. DO NOT re-read these — they are already in context
+
+- **CLAUDE.md** — loaded automatically by the system as project instructions
+- **MEMORY.md** — loaded automatically by the system as auto-memory
+- Any `.claude/rules/` files — loaded automatically
+
+Redundant reads waste an entire tool round. Skip them.
 
 ---
 
-## Step 2 — Detect Project Context
+## Round 2 — Start dev server (if needed) + report
 
-Determine:
-- **PROJECT_NAME** — from `package.json` name field, or first heading in `CLAUDE.md`
-- **DEV_PORT** — from `localhost:XXXX` found in `CLAUDE.md`; fallback to 3000
-- **DEV_DIR** — search all `package.json` files for the dev script; it may be in a subdirectory (e.g., `web/dashboard`), not at root
+Only depends on Round 1 results.
 
----
+### 2a. Start dev server (if port was free)
 
-## Step 3 — Start Dev Server
+```bash
+cd {DEV_DIR} && npm run dev
+```
 
-Check if the dev server is already running on DEV_PORT (e.g., `netstat` or equivalent).
+Run as background task. Do not wait for compilation.
 
-- **If port is occupied:** note "Dev server already running on :{DEV_PORT}" — skip.
-- **If port is free:** launch `npm run dev` from DEV_DIR as a background task.
+If port was occupied in Round 1: skip, note "already running."
 
----
+### 2b. Activate invocation tracking
 
-## Step 4 — Load Project Pearls
+Pearl invocation logging is now ACTIVE for this session.
 
-Read `.agent/alignment/pearls.md` from the project root.
-
-If the file uses the two-table format (Guidance + Metrics per category), **read only
-the Guidance tables** at boot — the Metrics tables are for harvest only.
-
-From the Guidance tables, internalize every pearl silently — do NOT list them back
-to the user. Then:
-
-- **Group by Confidence**: Hard Constraints are non-negotiable. Strong Heuristics inform judgment.
-- **Flag Review Due**: note any pearl whose `Review By` date has passed.
-- **Count unvalued pearls**: any pearl with `Min/Use = ?`.
-- **Count total pearls** across all Guidance tables.
-
-If the file does not exist, note "No pearls file found — harvest will create it."
-
----
-
-## Step 5 — Activate Invocation Tracking
-
-Pearl invocation logging is now **ACTIVE** for this session.
-
-**Format — use this exactly whenever a pearl prevents a mistake or shapes a decision:**
+**Format:**
 ```
 ⚡ Pearl invoked: "[Pearl Title]" — [what you were about to do and what you did instead]
 ```
 
-**Trigger awareness**: each loaded pearl has a Trigger condition. When you detect that
-condition in the current task, consciously evaluate whether the pearl applies. Log the
-result either way — invocation or "considered, not applicable."
+- Before substantial operations, scan loaded pearls for relevance
+- In sessions > 1 hour, re-state Hard Constraints before high-risk operations
 
-**Pre-task pearl scan**: before beginning any substantial operation, briefly state which
-loaded pearls are relevant.
+### 2c. Fire boot canary
 
-**Context decay re-injection**: in sessions exceeding ~1 hour, re-state Hard Constraint
-pearls before high-risk operations.
-
----
-
-## Step 6 — Load Project Context
-
-Read these files in order:
-
-1. `VISION.md` — governing intent, 5 principles, eagle view test
-2. `CLAUDE.md` — architecture, tech stack, key directories, rules
-3. Any context files explicitly referenced in `CLAUDE.md`
-
-Identify:
-- Current project state and active development phase
-- Files flagged as off-limits or protected
-- Model or tool routing rules
-
----
-
-## Step 7 — Check Harvest Staleness
-
-Search git log for the most recent harvest commit:
-```
-git log --oneline | grep -i "harvest" | head -1
-```
-
-- **≤ 7 days:** normal
-- **8–14 days:** warn: `⚠ HARVEST OVERDUE`
-- **> 14 days:** alert: `🚨 HARVEST CRITICAL`
-- **No harvest found:** report "Never harvested."
-
----
-
-## Step 8 — Fire Boot Canary
-
-Emit this exact line (fill in actual values):
 ```
 [BOOTED] {N} pearls loaded. Project: {PROJECT_NAME}. Last harvest: {N days ago / never}. Dev: {running on :{PORT} / starting / already running}.
 ```
 
----
-
-## Step 9 — Report Alignment Status
+### 2d. Report alignment status
 
 ```
 Boot Complete.
 
 PROJECT:  {PROJECT_NAME}
-STACK:    {stack from CLAUDE.md}
+STACK:    {from CLAUDE.md}
 PORT:     {DEV_PORT}
-PEARLS:   {N} loaded ({N} categories) — {N} Hard Constraints · {N} Heuristics · {N} Patterns
+PEARLS:   {N} loaded ({N} categories) — {N} Hard · {N} Heuristic · {N} Pattern
 UNVALUED: {N} pearls with Min/Use = ?
-REVIEW:   {N} pearls past Review By date
-HARVEST:  {N days ago / never}
-DEV:      {running on localhost:{PORT} / starting / already running}
-TRACKING: ⚡ Invocation logging ACTIVE
+REVIEW:   {N} past Review By date
+HARVEST:  {N days ago / never} {⚠ OVERDUE if > 7 / 🚨 CRITICAL if > 14}
+DEV:      {status}
+TRACKING: ⚡ Active
 STATUS:   Ready. Awaiting orders.
 ```
 
 ---
 
-## Step 10 — Harvest Reminder (planted)
+## Harvest reminder (planted)
 
-At the end of this session, if significant problem-solving occurred, offer to run
-the harvest protocol (`.agent/alignment/protocols/harvest.md`).
+At session end, if significant problem-solving occurred, offer `/harvest`.
 
 ---
 
 ## Critical Rules
 
-- **Read the files — do not summarize from memory.** Every session starts cold.
-- **Fire the canary.** The one-liner in Step 8 proves alignment loaded.
+- **2 rounds. Not 3. Not 4.** If boot takes more than 2 tool rounds, the protocol is broken.
+- **Read the files — do not summarize from memory.** Pearls and VISION.md must be re-read every session.
+- **Do NOT re-read system-loaded files.** CLAUDE.md, MEMORY.md, and .claude/rules/ are already in context.
+- **One bash call for all shell commands.** Never split independent shell commands across multiple tool calls.
+- **Fire the canary.** Non-negotiable.
 - **Log every pearl invocation.** Uses = 0 means pruning candidate.
-- **Do not start building.** This protocol ends at the alignment report. Wait for task assignment.
-- **Never hardcode project names or ports.** Always derive from the actual repo.
+- **Do not start building.** Boot ends at the report. Wait for task assignment.
+- **Never hardcode project names or ports.** Derive from the actual repo.
